@@ -287,7 +287,7 @@ def yolov8_segment(model, image, label_name, threshold):
 
     # Convert the background with overlays back to a tensor
     image_tensor_out = torch.tensor(green_background.transpose(2, 0, 1), dtype=torch.float32) / 255.0
-    image_tensor_out = image_tensor_out.unsqueeze(0)  # Add batch dimension
+    #image_tensor_out = image_tensor_out.unsqueeze(0)  # Add batch dimension
 
     return image_tensor_out
 
