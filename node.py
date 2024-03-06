@@ -214,63 +214,104 @@ def calculate_file_hash(filename: str, hash_every_n: int = 1):
     return h.hexdigest()
 
 def yolov8_segment(model, image, label_name, threshold):
-    # Convert the input image tensor to a PIL Image
+    # Convert the input image tensor to a PIL Image for YOLO processing
     image_np = image.cpu().numpy()
     image_pil = Image.fromarray((image_np.squeeze(0) * 255).astype(np.uint8))
     W, H = image_pil.size
 
-    # Create a solid green background
+    # Create a solid green background to overlay masks onto
     green_background = np.zeros((H, W, 3), dtype=np.uint8)
-    green_background[:] = [0, 255, 0]  # Solid green
+    green_background[:] = [0, 255, 0]  # Solid green background
 
-    if label_name is not None:
-        classes = get_classes(label_name)
-    else:
-        classes = []
+    # Run the model on the image
+    results = model(image_pil)
 
-    # Run the model
-    results = model(image_pil, classes=classes, conf=threshold)
-
-    # Define a list of colors for the masks, excluding green
+    # Define a list of colors for the masks, excluding similar to green
     colors = [
-        [255, 0, 0], [0, 0, 255], [255, 255, 0], 
-        [255, 0, 255], [0, 255, 255], [255, 165, 0],
-        [128, 0, 128], [128, 128, 0], [0, 128, 128],
-        [255, 105, 180], [0, 100, 0], [100, 149, 237],
+        [255, 0, 0], [0, 0, 255], [255, 255, 0], [255, 0, 255], [0, 255, 255], [255, 165, 0],
+        [128, 0, 128], [128, 128, 0], [0, 128, 128], [255, 105, 180], [0, 100, 0], [100, 149, 237]
     ]
 
-    idx = 0
-    # Overlay each mask onto the green background
-    for result in results:
-        if hasattr(result, 'masks') and result.masks is not None:
-            # Let's assume result.masks.data is the correct tensor. Adjust based on your model's structure.
-            masks_tensor = result.masks.data  # This should be a tensor
+    # Process each detection and its corresponding mask
+    for idx, (det) in enumerate(results.xyxy[0]):
+        if int(det[-1]) == labelName.get(label_name, -1):  # Check if detection matches desired label
+            mask = results.masks[idx]  # Assuming this is how you access a specific mask
+            mask_np = mask.cpu().numpy() > threshold
 
-            # Convert the tensor to a numpy array for processing
-            masks_np = masks_tensor.cpu().numpy()
+            # Ensure mask matches the dimensions of the green_background
+            if mask_np.shape != (H, W):
+                mask_np = cv2.resize(mask_np.astype(np.uint8), (W, H), interpolation=cv2.INTER_NEAREST)
 
-            # Assuming masks_np is now a numpy array of shape [N, H, W] where N is the number of masks
-            for mask_np in masks_np:
-                mask_bool = mask_np > 0.5  # Convert to boolean mask based on threshold
-                
-                 # Resize mask_bool if it doesn't match the green_background dimensions
-                if mask_bool.shape != green_background.shape[:2]:
-                    mask_bool_resized = cv2.resize(mask_bool.astype(np.float32), (W, H))
-                    mask_bool_resized = mask_bool_resized > 0.5  # Re-threshold after resizing
-                else:
-                    mask_bool_resized = mask_bool
-                
-                color = colors[idx % len(colors)]
-                idx += 1
-                # Apply color to mask
-                for k in range(3):  # RGB channels
-                    green_background[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
+            color = colors[idx % len(colors)]
 
-    # Convert the background with overlays back to a tensor
-    image_tensor_out = torch.tensor(green_background.transpose(2, 0, 1), dtype=torch.float32) / 255.0
+            # Apply each mask in a unique color to the green background
+            for c in range(3):  # Apply for each channel RGB
+                green_background[:, :, c] = np.where(mask_np, color[c], green_background[:, :, c])
+
+    # Convert the modified green_background back to a tensor
+    image_tensor_out = torch.from_numpy(green_background).permute(2, 0, 1).float() / 255.0
     image_tensor_out = image_tensor_out.unsqueeze(0)  # Add batch dimension
 
     return image_tensor_out
+
+# def yolov8_segment(model, image, label_name, threshold):
+#     # Convert the input image tensor to a PIL Image
+#     image_np = image.cpu().numpy()
+#     image_pil = Image.fromarray((image_np.squeeze(0) * 255).astype(np.uint8))
+#     W, H = image_pil.size
+
+#     # Create a solid green background
+#     green_background = np.zeros((H, W, 3), dtype=np.uint8)
+#     green_background[:] = [0, 255, 0]  # Solid green
+
+#     if label_name is not None:
+#         classes = get_classes(label_name)
+#     else:
+#         classes = []
+
+#     # Run the model
+#     results = model(image_pil, classes=classes, conf=threshold)
+
+#     # Define a list of colors for the masks, excluding green
+#     colors = [
+#         [255, 0, 0], [0, 0, 255], [255, 255, 0], 
+#         [255, 0, 255], [0, 255, 255], [255, 165, 0],
+#         [128, 0, 128], [128, 128, 0], [0, 128, 128],
+#         [255, 105, 180], [0, 100, 0], [100, 149, 237],
+#     ]
+
+#     idx = 0
+#     # Overlay each mask onto the green background
+#     for result in results:
+#         if hasattr(result, 'masks') and result.masks is not None:
+#             # Let's assume result.masks.data is the correct tensor. Adjust based on your model's structure.
+#             masks_tensor = result.masks.data  # This should be a tensor
+
+#             # Convert the tensor to a numpy array for processing
+#             masks_np = masks_tensor.cpu().numpy()
+
+#             # Assuming masks_np is now a numpy array of shape [N, H, W] where N is the number of masks
+#             for mask_np in masks_np:
+#                 mask_bool = mask_np > 0.5  # Convert to boolean mask based on threshold
+                
+#                  # Resize mask_bool if it doesn't match the green_background dimensions
+#                 if mask_bool.shape != green_background.shape[:2]:
+#                     mask_bool_resized = cv2.resize(mask_bool.astype(np.float32), (W, H))
+#                     mask_bool_resized = mask_bool_resized > 0.5  # Re-threshold after resizing
+#                 else:
+#                     mask_bool_resized = mask_bool
+                
+#                 color = colors[idx % len(colors)]
+#                 idx += 1
+#                 # Apply color to mask
+#                 for k in range(3):  # RGB channels
+#                     green_background[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
+
+#     # Convert the background with overlays back to a tensor
+#     image_tensor_out = torch.tensor(green_background.transpose(2, 0, 1), dtype=torch.float32) / 255.0
+#     image_tensor_out = image_tensor_out.unsqueeze(0)  # Add batch dimension
+
+#     return image_tensor_out
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
