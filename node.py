@@ -500,4 +500,4 @@ class ApplyYolov8ModelSeg:
             idx += 1
 
         # Concatenate all images along the batch dimension
-        return torch.cat(res_images, dim=0)
+        return res_images
