@@ -213,6 +213,16 @@ def calculate_file_hash(filename: str, hash_every_n: int = 1):
     h.update(str(os.path.getmtime(filename)).encode())
     return h.hexdigest()
 
+def is_corner_black(mask, corner_size=1):
+    # Sample the values at the corners of the mask, considering a corner size
+    # This function returns True if all corners are black
+    h, w = mask.shape
+    top_left = mask[:corner_size, :corner_size].mean()
+    top_right = mask[:corner_size, -corner_size:].mean()
+    bottom_left = mask[-corner_size:, :corner_size].mean()
+    bottom_right = mask[-corner_size:, -corner_size:].mean()
+    return top_left == 0 and top_right == 0 and bottom_left == 0 and bottom_right == 0
+
 def yolov8_segment(model, image, label_name, threshold):
     # Convert the input image tensor to a PIL Image
     image_np = image.cpu().numpy()
@@ -260,6 +270,10 @@ def yolov8_segment(model, image, label_name, threshold):
                 else:
                     mask_bool_resized = mask_bool
                 
+                # Check if all corners are black
+                if not is_corner_black(mask_bool_resized):
+                    continue
+
                 color = colors[idx % len(colors)]
                 idx += 1
                 # Apply color to mask
