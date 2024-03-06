@@ -300,20 +300,25 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
 
     for mask in valid_masks:
-        # Ensure mask is boolean
         if mask.dtype != np.bool_:
             mask = mask.astype(np.bool_)
 
-        # Resize mask if necessary
         if mask.shape[:2] != (image_size[1], image_size[0]):
-            # We need to ensure the mask is the same size as the background for broadcasting to work
-            mask = cv2.resize(mask.astype(np.uint8), (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(np.bool_)
+            # Resize the mask to match the background dimensions
+            resized_mask = cv2.resize(mask.astype(np.uint8) * 255, (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(bool)
+        else:
+            resized_mask = mask
 
-        # Apply the mask to each of the color channels
-        for i in range(3):  # Iterate over each color channel
-            background[:, :, i][mask] = 255  # Set the color value to 255 (white) for the masked regions
+        # Where the mistake likely happened:
+        # Applying the mask to the background array directly
+        # Correct approach:
+        # Ensure that we're indexing correctly across all color channels
+        for c in range(3):  # Iterate over each color channel
+            # Apply the resized_mask to each color channel individually
+            background[:, :, c][resized_mask] = 255  # Assuming you want to set the masked area to white
 
     return background
+
 
 
 
