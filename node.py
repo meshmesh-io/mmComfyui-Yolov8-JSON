@@ -296,24 +296,34 @@ def yolov8_segment(model, image, label_name, threshold):
     return valid_masks
 
 
-def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0], mask_color=[255, 255, 255]):
-    # Initialize the background image
+def apply_mask_on_background(background, mask, color=(255, 255, 255)):
+    """
+    Apply a single mask to the given background.
+
+    :param background: 3D numpy array, the background image.
+    :param mask: 2D numpy array, the mask to be applied.
+    :param color: tuple, color to apply for the mask.
+    :return: 3D numpy array, the result image.
+    """
+    for c in range(3):  # Loop over color channels
+        background[:,:,c] = np.where(mask, color[c], background[:,:,c])
+    return background
+
+def overlay_masks_on_background(image_size, masks, background_color=(0, 255, 0)):
+    """
+    Overlay multiple masks onto a solid background.
+
+    :param image_size: tuple, the size of the images (width, height).
+    :param masks: list of 2D numpy arrays, the masks to overlay.
+    :param background_color: tuple, the color of the background.
+    :return: 3D numpy array, the resulting image with masks applied.
+    """
+    # Create a solid color background image
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
-
-    for mask in valid_masks:
-        # Ensure the mask is boolean
-        if mask.dtype != bool:
-            mask = mask > 0  # Assuming the mask is in a compatible binary format
-        
-        # Resize the mask to match the background, if necessary
-        if mask.shape[:2] != (image_size[1], image_size[0]):
-            mask = cv2.resize(mask.astype(np.uint8), (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(bool)
-        
-        # Expand mask to 3 channels
-        mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
-
-        # Apply mask to the background
-        background[mask_3d] = mask_color
+    
+    # Apply each mask to the background
+    for mask in masks:
+        background = apply_mask_on_background(background, mask)
 
     return background
 
