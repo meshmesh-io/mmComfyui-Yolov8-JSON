@@ -304,17 +304,16 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
             mask = mask.astype(bool)
 
         # Resize mask if necessary
-        if mask.shape != (image_size[1], image_size[0]):
+        if mask.shape[:2] != (image_size[1], image_size[0]):
             resized_mask = cv2.resize(mask.astype(np.uint8), (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(bool)
         else:
             resized_mask = mask
 
-        # Iterate over each color channel
-        for c in range(3):
-            # Apply the mask to the channel
-            background[..., c][resized_mask] = 255
+        # Apply the mask to each channel using numpy's advanced indexing
+        background[resized_mask, :] = [255, 255, 255]  # Set masked areas to white
 
     return background
+
 
 
 
