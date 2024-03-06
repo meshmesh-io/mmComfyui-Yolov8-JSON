@@ -256,6 +256,7 @@ def yolov8_segment(model, image, label_name, threshold):
     idx = 0
     # Overlay each mask onto the green background
     for result in results:
+        print('processing result', idx)
         if hasattr(result, 'masks') and result.masks is not None:
             # Let's assume result.masks.data is the correct tensor. Adjust based on your model's structure.
             masks_tensor = result.masks.data  # This should be a tensor
@@ -275,7 +276,9 @@ def yolov8_segment(model, image, label_name, threshold):
                     mask_bool_resized = mask_bool
                 
                 # Check if all corners are black
-                if is_corner_black(mask_bool_resized):
+                is_black_mask = is_corner_black(mask_bool_resized)
+                print('is_black_mask', is_black_mask)
+                if is_black_mask:
                     color = colors[idx % len(colors)]
                     idx += 1
                     # Apply color to mask
