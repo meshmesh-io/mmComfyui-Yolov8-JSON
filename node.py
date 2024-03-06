@@ -223,8 +223,13 @@ def yolov8_segment(model, image, label_name, threshold):
     green_background = np.zeros((H, W, 3), dtype=np.uint8)
     green_background[:] = [0, 255, 0]  # Solid green background
 
+    if label_name is not None:
+        classes = get_classes(label_name)
+    else:
+        classes = []
+
     # Run the model on the image
-    results = model(image_pil)
+    results = model(image_pil, classes=classes, conf=threshold)
 
     # Define a list of colors for the masks, excluding similar to green
     colors = [
@@ -251,7 +256,7 @@ def yolov8_segment(model, image, label_name, threshold):
 
             # Resize the mask to match the image size if necessary
             if mask_bool.shape[:2] != (H, W):
-                mask_bool_resized = cv2.resize(mask_bool, (W, H), interpolation=cv2.INTER_LINEAR)
+                mask_bool_resized = cv2.resize(mask_bool.astype(np.float32), (W, H))
                 mask_bool = mask_bool_resized > threshold  # Reapply threshold after resizing
             
             color = colors[idx % len(colors)]
@@ -261,7 +266,7 @@ def yolov8_segment(model, image, label_name, threshold):
             idx += 1  # Increment index for the next color
 
     # Convert the modified green background to a tensor
-    image_tensor_out = torch.from_numpy(green_background).permute(2, 0, 1).float() / 255.0
+    image_tensor_out = torch.tensor(green_background.transpose(2, 0, 1), dtype=torch.float32) / 255.0
     image_tensor_out = image_tensor_out.unsqueeze(0)  # Add batch dimension
 
     return image_tensor_out
