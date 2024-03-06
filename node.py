@@ -217,7 +217,7 @@ def change_mask_color(mask):
     # Assuming mask is a binary mask with values 0 and 1
     # Change color logic goes here
     colored_mask = torch.zeros_like(mask)  # Initialize with zeros
-    colored_mask[:, 2, :, :] = mask * 255  # Set blue channel to maximum where mask is present
+    colored_mask[0, :, :] = mask * 255  # Set blue channel to maximum where mask is present
     return colored_mask
 
 
