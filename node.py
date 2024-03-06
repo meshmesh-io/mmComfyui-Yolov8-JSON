@@ -232,7 +232,7 @@ def yolov8_segment(model, image, label_name, threshold):
     results = model(image_pil, classes=classes, conf=threshold)
 
     # Process results
-    print('segment_results', results.xyxy[0])  # Log detections
+    #print('segment_results', results)  # Log detections
 
     # Overlay masks on green background
     res_mask=[]
