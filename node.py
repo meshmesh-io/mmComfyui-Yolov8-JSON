@@ -300,6 +300,7 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
 
     for mask in valid_masks:
+        # Convert mask to bool if not already
         if mask.dtype != np.bool_:
             mask = mask.astype(np.bool_)
 
@@ -309,16 +310,12 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
         else:
             resized_mask = mask
 
-        # Apply the mask to the background
-        # The issue likely arises here when trying to apply the mask directly with too many dimensions
-        # Instead, apply the mask for each color channel separately but in a vectorized manner
-        background[resized_mask] = [255, 255, 255]  # Set masked area to white
+        # Apply mask to the background for each color channel
+        for c in range(3):  # Iterate over color channels
+            # Use np.where to safely broadcast mask application to all channels
+            background[:, :, c] = np.where(resized_mask, 255, background[:, :, c])
 
     return background
-
-
-
-
 
 
 
