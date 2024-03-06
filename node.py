@@ -273,13 +273,13 @@ def yolov8_segment(model, image, label_name, threshold):
             # Assuming masks_np is now a numpy array of shape [N, H, W] where N is the number of masks
             for mask_np in masks_np:
                 print('processing mask', idx)
-                mask_bool = mask_np # > threshold  # Convert to boolean mask based on threshold
+                mask_bool = mask_np > threshold  # Convert to boolean mask based on threshold
                 
                 # Resize mask_bool if it doesn't match the image dimensions
                 if mask_bool.shape != (H, W):
                     print('resizing mask', idx)
                     mask_bool_resized = cv2.resize(mask_bool.astype(np.float32), (W, H))
-                    mask_bool_resized = mask_bool_resized #> threshold  # Re-threshold after resizing
+                    mask_bool_resized = mask_bool_resized > threshold  # Re-threshold after resizing
                 else:
                     mask_bool_resized = mask_bool
 
