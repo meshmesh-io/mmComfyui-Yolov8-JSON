@@ -9,6 +9,8 @@ import logging
 from torch.hub import download_url_to_file
 import cv2
 
+import matplotlib.pyplot as plt
+
 logger = logging.getLogger("Comfyui-Yolov8-JSON")
 yolov8_model_dir_name = "yolov8"
 yolov8_model_list = {
@@ -275,6 +277,7 @@ def yolov8_segment(model, image, label_name, threshold):
                 
                 # Resize mask_bool if it doesn't match the image dimensions
                 if mask_bool.shape != (H, W):
+                    print('resizing mask', idx)
                     mask_bool_resized = cv2.resize(mask_bool.astype(np.float32), (W, H))
                     mask_bool_resized = mask_bool_resized > threshold  # Re-threshold after resizing
                 else:
@@ -499,8 +502,15 @@ class ApplyYolov8ModelSeg:
             # Call the segmentation function
             valid_masks = yolov8_segment(yolov8_model, item, label, threshold)
             
+            for idx, mask in enumerate(valid_masks):
+                plt.imshow(mask)
+                plt.title(f"Mask {idx}")
+                plt.show()
+
             # Iterate over each valid mask, convert to tensor, and append to the list
             for mask in valid_masks:
+                print("Unique values in mask:", np.unique(mask))
+                print("Sum of values in mask:", np.sum(mask))
                 mask_tensor = torch.tensor(mask, dtype=torch.float32) / 255.0
                 mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
                 res_images.append(mask_tensor)
