@@ -297,24 +297,29 @@ def yolov8_segment(model, image, label_name, threshold):
 
 
 def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0]):
-    # Initialize the background as a NumPy array filled with the background color
+    # Initialize the background
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
 
     for mask in valid_masks:
-        # Convert the boolean mask to a uint8 mask (255 for True, 0 for False) for OpenCV compatibility
-        mask_uint8 = mask.astype(np.uint8) * 255
+        # Convert mask to np.uint8 if not already, required for OpenCV functions
+        if mask.dtype != np.uint8:
+            mask = mask.astype(np.uint8) * 255  # Convert boolean mask to 0 or 255
 
-        # Resize the mask to match the background image size using OpenCV's resize function
-        resized_mask_uint8 = cv2.resize(mask_uint8, (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST)
+        # Resize mask if necessary
+        if mask.shape[:2] != (image_size[1], image_size[0]):
+            resized_mask = cv2.resize(mask, (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST)
+        else:
+            resized_mask = mask
 
-        # Convert the resized mask back to a boolean array for masking operations
-        resized_mask_bool = resized_mask_uint8.astype(bool)
+        # Convert resized mask back to boolean for indexing
+        resized_mask_bool = resized_mask.astype(bool)
 
-        # Apply the mask to the background
-        # For all 'True' (white) in the resized_mask_bool, set those pixels in the background to white [255, 255, 255]
-        background[resized_mask_bool] = [255, 255, 255]
+        # Correctly broadcast mask across all color channels
+        for c in range(3):  # Apply mask to each channel
+            background[..., c][resized_mask_bool] = 255
 
     return background
+
 
 
 
