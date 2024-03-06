@@ -503,13 +503,13 @@ class ApplyYolov8ModelSeg:
             for mask in valid_masks:
                 mask_tensor = torch.tensor(mask, dtype=torch.float32) / 255.0
                 mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
-                res_images.append(mask_tensor.unsqueeze(0))
+                res_images.append(mask_tensor)
 
-        final_images = []
-        for tensor in res_images:
-            image_np = tensor.squeeze(0).permute(1, 2, 0).numpy()  # Remove batch dim and permute
-            image_np = (image_np * 255).astype(np.uint8)  # Scale to [0, 255] and convert to uint8
-            img = Image.fromarray(image_np)  # Convert to PIL Image
-            final_images.append(img)
+        # final_images = []
+        # for tensor in res_images:
+        #     image_np = tensor.squeeze(0).permute(1, 2, 0).numpy()  # Remove batch dim and permute
+        #     image_np = (image_np * 255).astype(np.uint8)  # Scale to [0, 255] and convert to uint8
+        #     img = Image.fromarray(image_np)  # Convert to PIL Image
+        #     final_images.append(img)
         # Return the list of tensors
-        return final_images
+        return res_images
