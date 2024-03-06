@@ -588,4 +588,4 @@ class ApplyYolov8ModelSeg:
         green_image = torch.zeros((batch_size, C, H, W))  # Initialize with zeros
         green_image[:, 1, :, :] = 1  # Set the green channel to maximum
         
-        return green_image  # Return the green image tensor
+        return image  # Return the green image tensor
