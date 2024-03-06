@@ -300,10 +300,17 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
     background = np.zeros((image_size[1], image_size[0], 3), dtype=np.uint8)
     background[:] = background_color  # Solid color background
 
-    # Overlay each mask onto the background
     for mask in valid_masks:
-        # Where mask is not zero, overlay it onto the background
-        background[mask != 0] = mask[mask != 0]
+        # Ensure mask is the correct shape (H, W, 3)
+        if mask.shape[:2] != (image_size[1], image_size[0]):
+            # Resize mask to match background if needed
+            mask_resized = cv2.resize(mask, (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST)
+        else:
+            mask_resized = mask
+        
+        # Apply mask to background
+        for c in range(3):  # Assuming mask is boolean or binary
+            background[:, :, c] = np.where(mask_resized, mask_resized * 255, background[:, :, c])
 
     return background
 
