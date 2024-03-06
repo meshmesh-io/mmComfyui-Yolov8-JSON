@@ -305,9 +305,19 @@ def apply_mask_on_background(background, mask, color=(255, 255, 255)):
     :param color: tuple, color to apply for the mask.
     :return: 3D numpy array, the result image.
     """
-    for c in range(3):  # Loop over color channels
-        background[:,:,c] = np.where(mask, color[c], background[:,:,c])
+    # Ensure the mask is the correct shape
+    if mask.shape[:2] != background.shape[:2]:
+        # Resize the mask to match the background size
+        mask = cv2.resize(mask.astype(np.uint8), (background.shape[1], background.shape[0]), interpolation=cv2.INTER_NEAREST).astype(bool)
+
+    # Convert mask to a 3-channel array to match the background
+    mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
+
+    # Apply the mask to each channel of the background
+    background = np.where(mask_3d, color, background)
+
     return background
+
 
 def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0], mask_color=[255, 255, 255]):
     """
