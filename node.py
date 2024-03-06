@@ -509,22 +509,25 @@ class ApplyYolov8ModelSeg:
 
             label = label_list if detect == "choose" else label_name
 
-            if item.shape[0] == 3:  # This assumes 3 color channels
-                image_np = item.squeeze(0).permute(1, 2, 0).numpy()
-
-            image_np = image.cpu().numpy()
-            image_pil = Image.fromarray((image_np.squeeze(0) * 255).astype(np.uint8))
-            W, H = image_pil.size
-            # Call the segmentation function
+            # Process the image to extract masks
             valid_masks = yolov8_segment(yolov8_model, item, label, threshold)
             
-            # Create composite image with masks
-            composite_image_np = overlay_masks_on_background(valid_masks, image_size=(W, H), background_color=[0, 255, 0])
+            # Make sure the image tensor is in the expected format (C, H, W) before conversion
+            if item.dim() == 4 and item.size(1) == 3:
+                image_np = item.squeeze(0).permute(1, 2, 0).numpy()
+                W, H = image_np.shape[1], image_np.shape[0]
+                # Create a composite image with the masks overlaid on the background
+                composite_image_np = overlay_masks_on_background(valid_masks, image_size=(W, H), background_color=[0, 255, 0])
+                
+                # Debug print to check the shape
+                print("composite_image_np.shape:", composite_image_np.shape)
 
-            # Convert numpy image back to tensor
-            composite_image_tensor = torch.from_numpy(composite_image_np).permute(2, 0, 1).float() / 255.0
-            composite_image_tensor = composite_image_tensor.unsqueeze(0)  # Add batch dimension
-            
-            res_images.append(composite_image_tensor)
+                # Convert the numpy array back to a tensor and add a batch dimension
+                composite_image_tensor = torch.from_numpy(composite_image_np).float() / 255.0
+                composite_image_tensor = composite_image_tensor.permute(2, 0, 1).unsqueeze(0)
+                
+                # Append the resulting tensor to the list of images
+                res_images.append(composite_image_tensor)
 
+        # Return the list of tensors
         return res_images
