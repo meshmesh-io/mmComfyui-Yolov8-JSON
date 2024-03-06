@@ -239,6 +239,7 @@ def yolov8_segment(model, image, label_name, threshold):
         [255, 105, 180], [0, 100, 0], [100, 149, 237],
     ]
 
+    idx = 0
     # Overlay each mask onto the green background
     for result in results:
         if hasattr(result, 'masks') and result.masks is not None:
@@ -251,8 +252,8 @@ def yolov8_segment(model, image, label_name, threshold):
             # Assuming masks_np is now a numpy array of shape [N, H, W] where N is the number of masks
             for mask_np in masks_np:
                 mask_bool = mask_np > 0.5  # Convert to boolean mask based on threshold
-                color = colors[j % len(colors)]
-                
+                color = colors[idx % len(colors)]
+                idx += 1
                 # Apply color to mask
                 for k in range(3):  # RGB channels
                     green_background[:, :, k] = np.where(mask_bool, color[k], green_background[:, :, k])
