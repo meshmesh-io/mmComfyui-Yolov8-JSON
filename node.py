@@ -273,13 +273,13 @@ def yolov8_segment(model, image, label_name, threshold):
             # Assuming masks_np is now a numpy array of shape [N, H, W] where N is the number of masks
             for mask_np in masks_np:
                 print('processing mask', idx)
-                mask_bool = mask_np > threshold  # Convert to boolean mask based on threshold
+                mask_bool = mask_np # > threshold  # Convert to boolean mask based on threshold
                 
                 # Resize mask_bool if it doesn't match the image dimensions
                 if mask_bool.shape != (H, W):
                     print('resizing mask', idx)
                     mask_bool_resized = cv2.resize(mask_bool.astype(np.float32), (W, H))
-                    mask_bool_resized = mask_bool_resized > threshold  # Re-threshold after resizing
+                    mask_bool_resized = mask_bool_resized #> threshold  # Re-threshold after resizing
                 else:
                     mask_bool_resized = mask_bool
 
@@ -291,8 +291,9 @@ def yolov8_segment(model, image, label_name, threshold):
 
                 # Combine the color mask with the thresholded mask
                 colored_mask = np.where(mask_bool_resized[:, :, None], color_mask, 0)
-                
-                valid_masks.append(colored_mask)
+                mask_tensor = torch.tensor(colored_mask, dtype=torch.float32) / 255.0
+                mask_tensor = mask_tensor.permute(2, 0, 1)
+                valid_masks.append(mask_tensor)
                 idx += 1
                     
     return valid_masks
@@ -511,9 +512,9 @@ class ApplyYolov8ModelSeg:
             for mask in valid_masks:
                 print("Unique values in mask:", np.unique(mask))
                 print("Sum of values in mask:", np.sum(mask))
-                mask_tensor = torch.tensor(mask, dtype=torch.float32) / 255.0
-                mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
-                res_images.append(mask_tensor.unsqueeze(0))
+                # mask_tensor = torch.tensor(mask, dtype=torch.float32) / 255.0
+                # mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
+                res_images.append(mask)
 
         # final_images = []
         # for tensor in res_images:
