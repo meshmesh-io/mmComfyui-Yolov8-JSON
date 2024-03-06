@@ -295,7 +295,7 @@ def yolov8_segment(model, image, label_name, threshold):
                     
     return valid_masks
 
-def overlay_masks_on_background(valid_masks, background_color=[0, 255, 0], image_size=(W, H)):
+def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0]):
     # Create a background image
     background = np.zeros((image_size[1], image_size[0], 3), dtype=np.uint8)
     background[:] = background_color  # Solid color background
@@ -516,7 +516,7 @@ class ApplyYolov8ModelSeg:
             valid_masks = yolov8_segment(yolov8_model, item, label, threshold)
             
             # Iterate over each valid mask, convert to tensor, and append to the list
-            composite_image = overlay_masks_on_background(valid_masks, background_color=[0, 255, 0], image_size=(W, H))
+            composite_image = overlay_masks_on_background(valid_masks, image_size=(W, H), background_color=[0, 255, 0])
             composite_image = Image.fromarray(composite_image)
             res_images.append(composite_image)
 
