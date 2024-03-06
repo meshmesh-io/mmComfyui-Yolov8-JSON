@@ -295,6 +295,18 @@ def yolov8_segment(model, image, label_name, threshold):
                     
     return valid_masks
 
+def overlay_masks_on_background(valid_masks, background_color=[0, 255, 0], image_size=(W, H)):
+    # Create a background image
+    background = np.zeros((image_size[1], image_size[0], 3), dtype=np.uint8)
+    background[:] = background_color  # Solid color background
+
+    # Overlay each mask onto the background
+    for mask in valid_masks:
+        # Where mask is not zero, overlay it onto the background
+        background[mask != 0] = mask[mask != 0]
+
+    return background
+
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
     image_np = image_tensor.cpu().numpy()  # Change from CxHxW to HxWxC for Pillow
@@ -497,21 +509,15 @@ class ApplyYolov8ModelSeg:
 
             label = label_list if detect == "choose" else label_name
 
+            image_np = image.cpu().numpy()
+            image_pil = Image.fromarray((image_np.squeeze(0) * 255).astype(np.uint8))
+            W, H = image_pil.size
             # Call the segmentation function
             valid_masks = yolov8_segment(yolov8_model, item, label, threshold)
             
             # Iterate over each valid mask, convert to tensor, and append to the list
-            for mask in valid_masks:
-                
-                mask_tensor = torch.tensor(mask, dtype=torch.float32) / 255.0
-                mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
-                res_images.append(mask_tensor)
+            composite_image = overlay_masks_on_background(valid_masks, background_color=[0, 255, 0], image_size=(W, H))
+            composite_image = Image.fromarray(composite_image)
+            res_images.append(composite_image)
 
-        # final_images = []
-        # for tensor in res_images:
-        #     image_np = tensor.squeeze(0).permute(1, 2, 0).numpy()  # Remove batch dim and permute
-        #     image_np = (image_np * 255).astype(np.uint8)  # Scale to [0, 255] and convert to uint8
-        #     img = Image.fromarray(image_np)  # Convert to PIL Image
-        #     final_images.append(img)
-        # Return the list of tensors
         return res_images
