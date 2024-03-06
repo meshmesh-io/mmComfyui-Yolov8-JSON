@@ -228,7 +228,7 @@ def yolov8_segment(model, image, label_name, threshold):
         classes = []
     results = model(image_pil, classes=classes, conf=threshold)
 
-    res_masks = []
+    #res_masks = []
     if hasattr(results, 'xyxy') and len(results.xyxy) > 0:
         for result in results:
             # Assuming results.masks is a list of mask tensors
@@ -240,13 +240,13 @@ def yolov8_segment(model, image, label_name, threshold):
                     green_background[:, :, c] = np.where(binary_mask, original_image[:, :, c], green_background[:, :, c])
 
                 # Summing up all masks into one, assuming binary_mask is 2D
-                res_masks.append(np.sum(binary_mask, axis=0))
+                #res_masks.append(np.sum(binary_mask, axis=0))
 
     # Convert modified image back to PIL Image and then to tensor
     im_colored = Image.fromarray(green_background)
     image_tensor_out = torch.tensor(np.array(im_colored).astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
 
-    return (image_tensor_out, res_masks)
+    return (image_tensor_out)
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
@@ -440,7 +440,7 @@ class ApplyYolov8ModelSeg:
 
     CATEGORY = "Comfyui-Yolov8-JSON"
     FUNCTION = "main"
-    RETURN_TYPES = ("IMAGE", "MASK")
+    RETURN_TYPES = ("IMAGE")
 
     def main(
         self, yolov8_model, image, detect, label_name, label_list, threshold
@@ -458,7 +458,7 @@ class ApplyYolov8ModelSeg:
             else:
                 label = label_name
 
-            image_out,  masks = yolov8_segment(yolov8_model, item, label, threshold)
+            image_out = yolov8_segment(yolov8_model, item, label, threshold)
             res_images.append(image_out)
-            res_masks.extend(masks)
-        return (torch.cat(res_images, dim=0), torch.cat(res_masks, dim=0))
+            
+        return (torch.cat(res_images, dim=0))
