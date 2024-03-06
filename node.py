@@ -328,6 +328,10 @@ def apply_color_mask(background, mask, color=(255, 255, 255)):
     return combined_image
 
 
+def resize_mask(mask, target_size):
+    """Resize a mask to the target size."""
+    return cv2.resize(mask.astype(np.uint8), target_size, interpolation=cv2.INTER_NEAREST).astype(bool)
+
 def overlay_masks_on_background(valid_masks, image_size, background_color=(0, 255, 0), mask_color=(255, 255, 255)):
     """
     Overlay multiple masks onto a solid background.
@@ -341,9 +345,20 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=(0, 25
     # Create a solid color background image
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
 
-    # Apply each mask to the background
+    # Iterate through each mask
     for mask in valid_masks:
-        background = apply_color_mask(background, mask, color=mask_color)
+        # Resize mask to match the background size
+        resized_mask = resize_mask(mask, (image_size[0], image_size[1]))
+        
+        # Expand mask to 3 channels to match the background
+        mask_3d = np.repeat(resized_mask[:, :, np.newaxis], 3, axis=2)
+        
+        # Apply color to mask
+        color_mask = np.zeros_like(background, dtype=np.uint8)
+        color_mask[:,:,:] = mask_color
+        
+        # Combine color mask with background using the boolean mask
+        background = np.where(mask_3d, color_mask, background)
 
     return background
 
