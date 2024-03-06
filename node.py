@@ -322,7 +322,7 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
     
     # Apply each mask to the background
-    for mask in masks:
+    for mask in valid_masks:
         background = apply_mask_on_background(background, mask)
 
     return background
