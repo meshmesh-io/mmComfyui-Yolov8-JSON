@@ -304,21 +304,17 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
         if mask.dtype != np.bool_:
             mask = mask.astype(np.bool_)
 
-        # Convert boolean mask to an integer type before resizing
-        mask_int = mask.astype(np.uint8)  # Convert boolean mask to integer (False->0, True->1)
-
         # Resize mask if necessary
         if mask.shape[:2] != (image_size[1], image_size[0]):
-            resized_mask_int = cv2.resize(mask_int, (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST)
-            resized_mask = resized_mask_int.astype(np.bool_)  # Convert resized integer mask back to boolean
-        else:
-            resized_mask = mask
+            # We need to ensure the mask is the same size as the background for broadcasting to work
+            mask = cv2.resize(mask.astype(np.uint8), (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(np.bool_)
 
-        # Apply mask to the background by setting masked areas to white
-        # Update to properly broadcast the mask across the color channels
-        background[resized_mask] = np.array([255, 255, 255], dtype=np.uint8)
+        # Apply the mask to each of the color channels
+        for i in range(3):  # Iterate over each color channel
+            background[:, :, i][mask] = 255  # Set the color value to 255 (white) for the masked regions
 
     return background
+
 
 
 
