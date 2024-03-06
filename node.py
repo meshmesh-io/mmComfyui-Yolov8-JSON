@@ -310,13 +310,13 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
         else:
             resized_mask = mask
 
-        # Convert the 2D mask to a 3D mask by repeating it across the color channels
-        resized_mask_3d = np.repeat(resized_mask[:, :, np.newaxis], 3, axis=2)
-
-        # Apply the 3D mask to the background
-        background[resized_mask_3d] = [255, 255, 255]  # Set masked areas to white
+        # Apply the mask to each color channel
+        for c in range(3):  # There are 3 color channels: R, G, B
+            # For each channel, set the masked pixels to 255
+            background[..., c][resized_mask] = 255
 
     return background
+
 
 
 
