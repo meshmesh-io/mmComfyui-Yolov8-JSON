@@ -502,32 +502,23 @@ class ApplyYolov8ModelSeg:
     RETURN_TYPES = ("IMAGE",)  # Updated to only return image
 
     def main(self, yolov8_model, image, detect, label_name, label_list, threshold):
-        res_images = []
-        for item in image:
-            if len(item.shape) == 3:
-                item = item.unsqueeze(0)  # Add a batch dimension if missing
+        if image.dim() == 3:
+            # Convert to (1, C, H, W) for batch dimension
+            image = image.unsqueeze(0)
+        
+        label = label_list if detect == "choose" else label_name
 
-            label = label_list if detect == "choose" else label_name
+        # Call the segmentation function
+        valid_masks = yolov8_segment(yolov8_model, image, label, threshold)
 
-            # Process the image to extract masks
-            valid_masks = yolov8_segment(yolov8_model, item, label, threshold)
-            
-            # Make sure the image tensor is in the expected format (C, H, W) before conversion
-            if item.dim() == 4 and item.size(1) == 3:
-                image_np = item.squeeze(0).permute(1, 2, 0).numpy()
-                W, H = image_np.shape[1], image_np.shape[0]
-                # Create a composite image with the masks overlaid on the background
-                composite_image_np = overlay_masks_on_background(valid_masks, image_size=(W, H), background_color=[0, 255, 0])
-                
-                # Debug print to check the shape
-                print("composite_image_np.shape:", composite_image_np.shape)
+        # Assuming image is a tensor of shape (1, C, H, W)
+        H, W = image.shape[2], image.shape[3]
+        
+        # Overlay masks on a green background
+        composite_image_np = overlay_masks_on_background(valid_masks, image_size=(W, H))
 
-                # Convert the numpy array back to a tensor and add a batch dimension
-                composite_image_tensor = torch.from_numpy(composite_image_np).float() / 255.0
-                composite_image_tensor = composite_image_tensor.permute(2, 0, 1).unsqueeze(0)
-                
-                # Append the resulting tensor to the list of images
-                res_images.append(composite_image_tensor)
-
-        # Return the list of tensors
-        return res_images
+        # Convert to tensor, normalize, add batch dimension, and permute to (1, C, H, W)
+        composite_image_tensor = torch.tensor(composite_image_np).float() / 255.0
+        composite_image_tensor = composite_image_tensor.permute(2, 0, 1).unsqueeze(0)
+        
+        return composite_image_tensor  # Return a single tensor representing the overlaid image
