@@ -296,45 +296,46 @@ def yolov8_segment(model, image, label_name, threshold):
     return valid_masks
 
 
-def apply_mask_on_background(background, mask, color=(255, 255, 255)):
+def apply_color_mask(background, mask, color=(255, 255, 255)):
     """
-    Apply a single mask to the given background, resizing the mask if necessary.
+    Apply a colored mask over a background image.
 
     :param background: 3D numpy array of shape (H, W, 3), the background image.
-    :param mask: 2D numpy array, the mask to be applied. It can be of a different size.
-    :param color: Tuple of length 3, color to apply for the mask (R, G, B).
+    :param mask: 2D numpy array, the mask to be applied.
+    :param color: Tuple of length 3, representing the RGB color to apply where mask is true.
     :return: 3D numpy array, the result image with the mask applied.
     """
-    # Resize the mask to match the background dimensions if necessary
-    if mask.shape[:2] != background.shape[:2]:
-        mask = cv2.resize(mask.astype(np.uint8), (background.shape[1], background.shape[0]), interpolation=cv2.INTER_NEAREST)
-        mask = mask.astype(bool)
-
-    # Expand mask dimensions to match background's 3 channels
-    mask_expanded = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
+    # Ensure the mask is a boolean array
+    mask_bool = mask.astype(bool)
     
-    # Apply color where mask is true
-    background[mask_expanded] = np.array(color, dtype=np.uint8)
+    # Create a color mask with the same dimensions as the background
+    color_mask = np.zeros_like(background, dtype=np.uint8)
     
-    return background
+    # Set the color where the mask is true
+    color_mask[mask_bool] = color
 
+    # Combine the color mask with the background
+    # This assumes the mask is meant to overwrite the background where it is true
+    combined_image = np.where(mask_bool[:,:,None], color_mask, background)
 
+    return combined_image
 
-def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0], mask_color=[255, 255, 255]):
+def overlay_masks_on_background(valid_masks, image_size, background_color=(0, 255, 0), mask_color=(255, 255, 255)):
     """
     Overlay multiple masks onto a solid background.
 
+    :param valid_masks: list of 2D numpy arrays, the masks to overlay.
     :param image_size: tuple, the size of the images (width, height).
-    :param masks: list of 2D numpy arrays, the masks to overlay.
     :param background_color: tuple, the color of the background.
+    :param mask_color: tuple, the color of the masks.
     :return: 3D numpy array, the resulting image with masks applied.
     """
     # Create a solid color background image
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
-    
+
     # Apply each mask to the background
     for mask in valid_masks:
-        background = apply_mask_on_background(background, mask)
+        background = apply_color_mask(background, mask, color=mask_color)
 
     return background
 
