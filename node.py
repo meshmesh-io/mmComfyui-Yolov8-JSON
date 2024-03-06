@@ -509,6 +509,9 @@ class ApplyYolov8ModelSeg:
 
             label = label_list if detect == "choose" else label_name
 
+            if item.shape[0] == 3:  # This assumes 3 color channels
+                image_np = item.squeeze(0).permute(1, 2, 0).numpy()
+
             image_np = image.cpu().numpy()
             image_pil = Image.fromarray((image_np.squeeze(0) * 255).astype(np.uint8))
             W, H = image_pil.size
