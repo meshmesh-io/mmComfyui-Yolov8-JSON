@@ -454,4 +454,4 @@ class ApplyYolov8ModelSeg:
             image_out,  masks = yolov8_segment(yolov8_model, item, label, threshold)
             res_images.append(image_out)
             res_masks.extend(masks)
-        return (torch.cat(res_images, dim=0), torch.cat(res_masks, dim=0))
+        return (torch.cat(res_images, dim=0), res_masks)
