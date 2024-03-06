@@ -232,23 +232,35 @@ def yolov8_segment(model, image, label_name, threshold):
         [128, 0, 128], [128, 128, 0], [0, 128, 128], [255, 105, 180], [0, 100, 0], [100, 149, 237]
     ]
 
-    # Process each detection and its corresponding mask
-    for idx, (det) in enumerate(results.xyxy[0]):
-        if int(det[-1]) == labelName.get(label_name, -1):  # Check if detection matches desired label
-            mask = results.masks[idx]  # Assuming this is how you access a specific mask
-            mask_np = mask.cpu().numpy() > threshold
+    idx = 0
+    # Check and apply each mask onto the green background
+    if hasattr(results, 'pred') and results.pred[0] is not None:
+        detections = results.pred[0]
+        # Assuming results.xyxy[0] to get bounding boxes if needed
+        for det in detections:
+            # Assuming class ID is the last element in det
+            class_id = int(det[-1])
+            if label_name and class_id not in get_classes(label_name):
+                continue  # Skip if class_id not in desired labels
+            
+            # Extract mask for the current detection
+            mask = results.masks[idx]  # Update this line based on how masks are structured in your results
+            
+            mask_np = mask.cpu().numpy()
+            mask_bool = mask_np > threshold  # Thresholding the mask
 
-            # Ensure mask matches the dimensions of the green_background
-            if mask_np.shape != (H, W):
-                mask_np = cv2.resize(mask_np.astype(np.uint8), (W, H), interpolation=cv2.INTER_NEAREST)
-
+            # Resize the mask to match the image size if necessary
+            if mask_bool.shape[:2] != (H, W):
+                mask_bool_resized = cv2.resize(mask_bool, (W, H), interpolation=cv2.INTER_LINEAR)
+                mask_bool = mask_bool_resized > threshold  # Reapply threshold after resizing
+            
             color = colors[idx % len(colors)]
+            for c in range(3):  # For each channel in RGB
+                green_background[:, :, c] = np.where(mask_bool, color[c], green_background[:, :, c])
+            
+            idx += 1  # Increment index for the next color
 
-            # Apply each mask in a unique color to the green background
-            for c in range(3):  # Apply for each channel RGB
-                green_background[:, :, c] = np.where(mask_np, color[c], green_background[:, :, c])
-
-    # Convert the modified green_background back to a tensor
+    # Convert the modified green background to a tensor
     image_tensor_out = torch.from_numpy(green_background).permute(2, 0, 1).float() / 255.0
     image_tensor_out = image_tensor_out.unsqueeze(0)  # Add batch dimension
 
