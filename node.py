@@ -447,8 +447,8 @@ class ApplyYolov8ModelSeg:
         self, yolov8_model, image, detect, label_name, label_list, threshold
     ):
         res_images = []
-        res_masks = []
         res_masks_colored = []
+        res_masks = []  # No need to concatenate masks anymore
         for item in image:
             # Check and adjust image dimensions if needed
             if len(item.shape) == 3:
@@ -460,16 +460,13 @@ class ApplyYolov8ModelSeg:
             else:
                 label = label_name
 
-            image_out,  masks = yolov8_segment(yolov8_model, item, label, threshold)
+            image_out, masks = yolov8_segment(yolov8_model, item, label, threshold)
             res_images.append(image_out)
-
-            print("Mask shape before change_mask_color:", masks[0].shape)
-            print("Mask values before change_mask_color:", masks[0])
 
             for mask in masks:
                 # Change color of the mask here, assuming it's a binary mask
                 colored_mask = change_mask_color(mask)
                 res_masks_colored.append(colored_mask)
+                res_masks.append(mask)  # Append the original mask too
 
-            res_masks.extend(masks)
-        return (torch.cat(res_images, dim=0), torch.cat(res_masks_colored, dim=0))
+        return (torch.cat(res_images, dim=0), res_masks_colored, res_masks)
