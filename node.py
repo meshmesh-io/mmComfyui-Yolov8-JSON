@@ -278,12 +278,8 @@ def yolov8_segment(model, image, label_name, threshold):
                 else:
                     mask_bool_resized = mask_bool
                 
-                # Check if all corners are black
-                is_black_mask = is_corner_black(mask_bool_resized)
-                print('is_black_mask', is_black_mask)
-                if is_black_mask:
-                    valid_masks.append(mask_bool_resized.astype(np.uint8))
-
+                valid_masks.append(mask_bool_resized.astype(np.uint8))
+                    
     return valid_masks
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
