@@ -271,18 +271,24 @@ def yolov8_segment(model, image, label_name, threshold):
             for mask_np in masks_np:
                 mask_bool = mask_np > threshold  # Convert to boolean mask based on threshold
                 
-                 # Resize mask_bool if it doesn't match the green_background dimensions
-                if mask_bool.shape != green_background.shape[:2]:
+                # Resize mask_bool if it doesn't match the image dimensions
+                if mask_bool.shape != (H, W):
                     mask_bool_resized = cv2.resize(mask_bool.astype(np.float32), (W, H))
                     mask_bool_resized = mask_bool_resized > threshold  # Re-threshold after resizing
                 else:
                     mask_bool_resized = mask_bool
-                
+
+                # Create a 3-channel mask with the desired color
+                color_mask = np.zeros((H, W, 3), dtype=np.uint8)
                 color = colors[idx % len(colors)]
+                for k in range(3):  # Apply color channels
+                    color_mask[:, :, k] = color[k]
+
+                # Combine the color mask with the thresholded mask
+                colored_mask = np.where(mask_bool_resized[:, :, None], color_mask, 0)
+                
+                valid_masks.append(colored_mask)
                 idx += 1
-                for k in range(3):  # RGB channels
-                    mask_bool_resized[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
-                valid_masks.append(mask_bool_resized.astype(np.uint8))
                     
     return valid_masks
 
