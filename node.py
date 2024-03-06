@@ -515,9 +515,13 @@ class ApplyYolov8ModelSeg:
             # Call the segmentation function
             valid_masks = yolov8_segment(yolov8_model, item, label, threshold)
             
-            # Iterate over each valid mask, convert to tensor, and append to the list
-            composite_image = overlay_masks_on_background(valid_masks, image_size=(W, H), background_color=[0, 255, 0])
-            composite_image = Image.fromarray(composite_image)
-            res_images.append(composite_image)
+            # Create composite image with masks
+            composite_image_np = overlay_masks_on_background(valid_masks, image_size=(W, H), background_color=[0, 255, 0])
+
+            # Convert numpy image back to tensor
+            composite_image_tensor = torch.from_numpy(composite_image_np).permute(2, 0, 1).float() / 255.0
+            composite_image_tensor = composite_image_tensor.unsqueeze(0)  # Add batch dimension
+            
+            res_images.append(composite_image_tensor)
 
         return res_images
