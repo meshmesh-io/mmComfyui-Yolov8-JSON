@@ -501,7 +501,8 @@ class ApplyYolov8ModelSeg:
             
             # Iterate over each valid mask, convert to tensor, and append to the list
             for mask in valid_masks:
-                mask_tensor = torch.tensor(mask, dtype=torch.float32).unsqueeze(0) / 255.0
+                mask_tensor = torch.tensor(mask, dtype=torch.float32) / 255.0
+                mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
                 res_images.append(mask_tensor.unsqueeze(0))
 
         # Return the list of tensors
