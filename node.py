@@ -214,32 +214,43 @@ def calculate_file_hash(filename: str, hash_every_n: int = 1):
     return h.hexdigest()
 
 def yolov8_segment(model, image, label_name, threshold):
+    colors = ['#FF0000', '#00FF00', '#0000FF']
+    # Convert hex colors to RGB
+    rgb_colors = [tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) for color in colors]
+
     image_tensor = image
     image_np = image_tensor.cpu().numpy()  # Change from CxHxW to HxWxC for Pillow
-    image = Image.fromarray(
-        (image_np.squeeze(0) * 255).astype(np.uint8)
-    )  # Convert float [0,1] tensor to uint8 image
+    image_pil = Image.fromarray((image_np.squeeze(0) * 255).astype(np.uint8))  # Convert float [0,1] tensor to uint8 image
+    image_np = np.array(image_pil)  # Convert PIL image back to numpy array for coloring
 
     if label_name is not None:
         classes = get_classes(label_name)
     else:
         classes = []
-    results = model(image, classes=classes, conf=threshold)
+    results = model(image_pil, classes=classes, conf=threshold)
 
-    im_array = results[0].plot()  # plot a BGR numpy array of predictions
-    im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
+    # Initialize an empty mask to store combined masks with colors
+    combined_mask = np.zeros(image_np.shape, dtype=np.uint8)
 
-    image_tensor_out = torch.tensor(
-        np.array(im).astype(np.float32) / 255.0
-    )  # Convert back to CxHxW
-    image_tensor_out = torch.unsqueeze(image_tensor_out, 0)
-
-    res_mask=[]
-
+    color_index = 0
     for result in results:
-        masks = result.masks.data
-        res_mask.append(torch.sum(masks, dim=0))
-    return (image_tensor_out, res_mask)
+        for i, (mask) in enumerate(result.masks):
+            color = rgb_colors[color_index % len(rgb_colors)]  # Cycle through colors
+            color_index += 1
+
+            # Apply colored mask to the combined mask
+            for c in range(3):  # RGB channels
+                combined_mask[:, :, c] = np.where(mask[0].cpu().numpy() > threshold,
+                                                  color[c],
+                                                  combined_mask[:, :, c])
+
+    # Combine original image with the colored masks
+    output_image = cv2.addWeighted(image_np, 1, combined_mask, 0.5, 0)
+
+    image_tensor_out = torch.tensor(output_image.astype(np.float32) / 255.0)  # Convert back to tensor
+    image_tensor_out = torch.unsqueeze(image_tensor_out.permute(2, 0, 1), 0)  # Adjust dimensions to CxHxW
+
+    return (image_tensor_out, [])
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
