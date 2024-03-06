@@ -218,9 +218,13 @@ def is_corner_black(mask, corner_size=1):
     # This function returns True if all corners are black
     h, w = mask.shape
     top_left = mask[:corner_size, :corner_size].mean()
+    print('top_left', top_left)
     top_right = mask[:corner_size, -corner_size:].mean()
+    print('top_right', top_right)
     bottom_left = mask[-corner_size:, :corner_size].mean()
+    print('bottom_left', bottom_left)
     bottom_right = mask[-corner_size:, -corner_size:].mean()
+    print('bottom_right', bottom_right)
     return top_left == 0 and top_right == 0 and bottom_left == 0 and bottom_right == 0
 
 def yolov8_segment(model, image, label_name, threshold):
@@ -271,14 +275,12 @@ def yolov8_segment(model, image, label_name, threshold):
                     mask_bool_resized = mask_bool
                 
                 # Check if all corners are black
-                if not is_corner_black(mask_bool_resized):
-                    continue
-
-                color = colors[idx % len(colors)]
-                idx += 1
-                # Apply color to mask
-                for k in range(3):  # RGB channels
-                    green_background[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
+                if is_corner_black(mask_bool_resized):
+                    color = colors[idx % len(colors)]
+                    idx += 1
+                    # Apply color to mask
+                    for k in range(3):  # RGB channels
+                        green_background[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
 
     # Convert the background with overlays back to a tensor
     image_tensor_out = torch.tensor(green_background.transpose(2, 0, 1), dtype=torch.float32) / 255.0
