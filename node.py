@@ -296,23 +296,28 @@ def yolov8_segment(model, image, label_name, threshold):
     return valid_masks
 
 def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0]):
-    # Create a background image
-    background = np.zeros((image_size[1], image_size[0], 3), dtype=np.uint8)
-    background[:] = background_color  # Solid color background
+    # Create a background image of the specified size and color
+    background = np.zeros((image_size[1], image_size[0], 3), dtype=np.uint8) + np.array(background_color, dtype=np.uint8)
 
+    # Iterate over each mask and overlay it onto the background
     for mask in valid_masks:
-        # Ensure mask is the correct shape (H, W, 3)
+        # Ensure the mask is boolean for masking operations
+        if mask.dtype != bool:
+            mask = mask.astype(bool)
+
+        # Check and resize mask to fit the background if necessary
         if mask.shape[:2] != (image_size[1], image_size[0]):
-            # Resize mask to match background if needed
-            mask_resized = cv2.resize(mask, (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST)
+            resized_mask = cv2.resize(mask.astype(np.float32), (image_size[0], image_size[1])) > 0.5  # Threshold after resizing to ensure it's still a boolean mask
         else:
-            mask_resized = mask
-        
-        # Apply mask to background
-        for c in range(3):  # Assuming mask is boolean or binary
-            background[:, :, c] = np.where(mask_resized, mask_resized * 255, background[:, :, c])
+            resized_mask = mask
+
+        # Use the resized boolean mask to overlay colors on the background
+        # For boolean indexing, we need the mask to be the same height and width as the background, and apply it per color channel
+        for c in range(3):
+            background[resized_mask, c] = mask[resized_mask] * 255  # Assuming mask values should set the corresponding pixels to white
 
     return background
+
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
