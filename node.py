@@ -298,25 +298,33 @@ def yolov8_segment(model, image, label_name, threshold):
 
 def apply_mask_on_background(background, mask, color=(255, 255, 255)):
     """
-    Apply a single mask to the given background.
+    Apply a single mask to the given background, resizing the mask if necessary.
 
-    :param background: 3D numpy array, the background image.
-    :param mask: 2D numpy array, the mask to be applied.
-    :param color: tuple, color to apply for the mask.
-    :return: 3D numpy array, the result image.
+    :param background: 3D numpy array of shape (H, W, 3), the background image.
+    :param mask: 2D numpy array, the mask to be applied. Can be of any size.
+    :param color: Tuple of length 3, color to apply for the mask (R, G, B).
+    :return: 3D numpy array, the result image with the mask applied.
     """
-    # Ensure the mask is the correct shape
-    if mask.shape[:2] != background.shape[:2]:
-        # Resize the mask to match the background size
-        mask = cv2.resize(mask.astype(np.uint8), (background.shape[1], background.shape[0]), interpolation=cv2.INTER_NEAREST).astype(bool)
-
-    # Convert mask to a 3-channel array to match the background
-    mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
-
-    # Apply the mask to each channel of the background
-    background = np.where(mask_3d, color, background)
-
+    background_height, background_width = background.shape[:2]
+    
+    # Resize mask if its dimensions do not match the background's dimensions
+    if mask.shape[0] != background_height or mask.shape[1] != background_width:
+        mask_resized = cv2.resize(mask.astype('float32'), (background_width, background_height), interpolation=cv2.INTER_LINEAR)
+        mask_resized = mask_resized > 0.5  # Re-threshold after resizing to ensure it's a boolean mask
+    else:
+        mask_resized = mask
+    
+    # Ensure the mask is boolean
+    mask_resized = mask_resized.astype(bool)
+    
+    # Expand mask dimensions to match background's 3 channels
+    mask_expanded = np.repeat(mask_resized[:, :, np.newaxis], 3, axis=2)
+    
+    # Apply color where mask is true
+    background[mask_expanded] = np.array(color, dtype=np.uint8)
+    
     return background
+
 
 
 def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0], mask_color=[255, 255, 255]):
