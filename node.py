@@ -213,6 +213,14 @@ def calculate_file_hash(filename: str, hash_every_n: int = 1):
     h.update(str(os.path.getmtime(filename)).encode())
     return h.hexdigest()
 
+def change_mask_color(mask):
+    # Assuming mask is a binary mask with values 0 and 1
+    # Change color logic goes here
+    colored_mask = torch.zeros_like(mask)  # Initialize with zeros
+    colored_mask[:, 2, :, :] = mask * 255  # Set blue channel to maximum where mask is present
+    return colored_mask
+
+
 def yolov8_segment(model, image, label_name, threshold):
     image_tensor = image
     image_np = image_tensor.cpu().numpy()  # Change from CxHxW to HxWxC for Pillow
@@ -440,6 +448,7 @@ class ApplyYolov8ModelSeg:
     ):
         res_images = []
         res_masks = []
+        res_masks_colored = []
         for item in image:
             # Check and adjust image dimensions if needed
             if len(item.shape) == 3:
@@ -453,6 +462,11 @@ class ApplyYolov8ModelSeg:
 
             image_out,  masks = yolov8_segment(yolov8_model, item, label, threshold)
             res_images.append(image_out)
+
+            for mask in masks:
+                # Change color of the mask here, assuming it's a binary mask
+                colored_mask = change_mask_color(mask)
+                res_masks_colored.append(colored_mask)
+
             res_masks.extend(masks)
-        print("res_masks len",len(res_masks))
-        return (torch.cat(res_images, dim=0), res_masks)
+        return (torch.cat(res_images, dim=0), torch.cat(res_masks_colored, dim=0))
