@@ -9,8 +9,6 @@ import logging
 from torch.hub import download_url_to_file
 import cv2
 
-import matplotlib.pyplot as plt
-
 logger = logging.getLogger("Comfyui-Yolov8-JSON")
 yolov8_model_dir_name = "yolov8"
 yolov8_model_list = {
@@ -291,9 +289,8 @@ def yolov8_segment(model, image, label_name, threshold):
 
                 # Combine the color mask with the thresholded mask
                 colored_mask = np.where(mask_bool_resized[:, :, None], color_mask, 0)
-                mask_tensor = torch.tensor(colored_mask, dtype=torch.float32) / 255.0
-                mask_tensor = mask_tensor.permute(2, 0, 1)
-                valid_masks.append(mask_tensor)
+                
+                valid_masks.append(colored_mask)
                 idx += 1
                     
     return valid_masks
@@ -503,18 +500,12 @@ class ApplyYolov8ModelSeg:
             # Call the segmentation function
             valid_masks = yolov8_segment(yolov8_model, item, label, threshold)
             
-            for idx, mask in enumerate(valid_masks):
-                plt.imshow(mask)
-                plt.title(f"Mask {idx}")
-                plt.show()
-
             # Iterate over each valid mask, convert to tensor, and append to the list
             for mask in valid_masks:
-                print("Unique values in mask:", np.unique(mask))
-                print("Sum of values in mask:", np.sum(mask))
-                # mask_tensor = torch.tensor(mask, dtype=torch.float32) / 255.0
-                # mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
-                res_images.append(mask)
+                
+                mask_tensor = torch.tensor(mask, dtype=torch.float32) / 255.0
+                mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
+                res_images.append(mask_tensor)
 
         # final_images = []
         # for tensor in res_images:
