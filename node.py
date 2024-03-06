@@ -233,6 +233,8 @@ def yolov8_segment(model, image, label_name, threshold):
     image_pil = Image.fromarray((image_np.squeeze(0) * 255).astype(np.uint8))
     W, H = image_pil.size
 
+    print('image size WxH:', W, H)
+
     # Create a solid green background
     green_background = np.zeros((H, W, 3), dtype=np.uint8)
     green_background[:] = [0, 255, 0]  # Solid green
@@ -297,69 +299,33 @@ def yolov8_segment(model, image, label_name, threshold):
 
 
 def apply_color_mask(background, mask, color=(255, 255, 255)):
-    """
-    Apply a colored mask over a background image, resizing the mask if necessary.
-
-    :param background: 3D numpy array of shape (H, W, 3), the background image.
-    :param mask: 2D numpy array, the mask to be applied.
-    :param color: Tuple of length 3, representing the RGB color to apply where mask is true.
-    :return: 3D numpy array, the result image with the mask applied.
-    """
-    # Get the dimensions of the background
-    bg_height, bg_width = background.shape[:2]
+    # Ensure the mask is boolean and correctly sized
+    mask_bool = mask.astype(bool)
     
-    # Resize mask to match the background's dimensions if they differ
-    if mask.shape[0] != bg_height or mask.shape[1] != bg_width:
-        mask_resized = cv2.resize(mask.astype(np.uint8), (bg_width, bg_height), interpolation=cv2.INTER_NEAREST)
-        mask_bool = mask_resized.astype(bool)
-    else:
-        mask_bool = mask.astype(bool)
+    # Expand the mask to match the 3 color channels if necessary
+    if mask_bool.ndim == 2:
+        mask_bool = np.repeat(mask_bool[:, :, np.newaxis], 3, axis=2)
     
-    # Create a color mask with the same dimensions as the background
-    color_mask = np.zeros_like(background, dtype=np.uint8)
-    
-    # Set the color where the mask is true
-    color_mask[mask_bool] = color
-
-    # Combine the color mask with the background
-    # This assumes the mask is meant to overwrite the background where it is true
-    combined_image = np.where(mask_bool[:,:,None], color_mask, background)
-
-    return combined_image
+    # Apply the mask
+    background[mask_bool] = color
+    return background
 
 
-def resize_mask(mask, target_size):
-    """Resize a mask to the target size."""
-    return cv2.resize(mask.astype(np.uint8), target_size, interpolation=cv2.INTER_NEAREST).astype(bool)
-
-def overlay_masks_on_background(valid_masks, image_size, background_color=(0, 255, 0), mask_color=(255, 255, 255)):
-    """
-    Overlay multiple masks onto a solid background.
-
-    :param valid_masks: list of 2D numpy arrays, the masks to overlay.
-    :param image_size: tuple, the size of the images (width, height).
-    :param background_color: tuple, the color of the background.
-    :param mask_color: tuple, the color of the masks.
-    :return: 3D numpy array, the resulting image with masks applied.
-    """
+def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0], mask_color=(255, 255, 255)):
     # Create a solid color background image
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
-
-    # Iterate through each mask
+    
     for mask in valid_masks:
-        # Resize mask to match the background size
-        resized_mask = resize_mask(mask, (image_size[0], image_size[1]))
+        # Ensure the mask is a boolean array
+        mask_bool = mask.astype(bool)
         
-        # Expand mask to 3 channels to match the background
-        mask_3d = np.repeat(resized_mask[:, :, np.newaxis], 3, axis=2)
+        # Resize the mask if it does not match the image size
+        if mask_bool.shape[:2] != image_size[::-1]:
+            mask_bool = cv2.resize(mask_bool.astype(np.uint8), image_size, interpolation=cv2.INTER_NEAREST).astype(bool)
         
-        # Apply color to mask
-        color_mask = np.zeros_like(background, dtype=np.uint8)
-        color_mask[:,:,:] = mask_color
-        
-        # Combine color mask with background using the boolean mask
-        background = np.where(mask_3d, color_mask, background)
-
+        # Apply each mask to the background
+        background = apply_color_mask(background, mask_bool, mask_color)
+    
     return background
 
 
