@@ -254,6 +254,9 @@ def yolov8_segment(model, image, label_name, threshold):
     ]
 
     idx = 0
+
+    valid_masks = []  # List to keep valid masks with black corners
+
     # Overlay each mask onto the green background
     for result in results:
         print('processing result', idx)
@@ -279,17 +282,9 @@ def yolov8_segment(model, image, label_name, threshold):
                 is_black_mask = is_corner_black(mask_bool_resized)
                 print('is_black_mask', is_black_mask)
                 if is_black_mask:
-                    color = colors[idx % len(colors)]
-                    idx += 1
-                    # Apply color to mask
-                    for k in range(3):  # RGB channels
-                        green_background[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
+                    valid_masks.append(mask_bool_resized.astype(np.uint8))
 
-    # Convert the background with overlays back to a tensor
-    image_tensor_out = torch.tensor(green_background.transpose(2, 0, 1), dtype=torch.float32) / 255.0
-    image_tensor_out = image_tensor_out.unsqueeze(0)  # Add batch dimension
-
-    return image_tensor_out
+    return valid_masks
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
@@ -487,17 +482,19 @@ class ApplyYolov8ModelSeg:
 
     def main(self, yolov8_model, image, detect, label_name, label_list, threshold):
         res_images = []
-        idx = 0
         for item in image:
-            print('processing image', idx)
-            print('item', item)
             if len(item.shape) == 3:
                 item = item.unsqueeze(0)  # Add a batch dimension if missing
-            
-            label = label_list if detect == "choose" else label_name
-            image_out = yolov8_segment(yolov8_model, item, label, threshold)
-            res_images.append(image_out)
-            idx += 1
 
-        # Concatenate all images along the batch dimension
+            label = label_list if detect == "choose" else label_name
+
+            # Call the segmentation function
+            valid_masks = yolov8_segment(yolov8_model, item, label, threshold)
+            
+            # Iterate over each valid mask, convert to tensor, and append to the list
+            for mask in valid_masks:
+                mask_tensor = torch.tensor(mask, dtype=torch.float32).unsqueeze(0) / 255.0
+                res_images.append(mask_tensor)
+
+        # Return the list of tensors
         return res_images
