@@ -300,22 +300,22 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
 
     for mask in valid_masks:
-        # Convert mask to bool if not already
-        if mask.dtype != np.bool_:
-            mask = mask.astype(np.bool_)
+        if mask.dtype != bool:
+            mask = mask.astype(bool)
 
         # Resize mask if necessary
-        if mask.shape[:2] != (image_size[1], image_size[0]):
+        if mask.shape != (image_size[1], image_size[0]):
             resized_mask = cv2.resize(mask.astype(np.uint8), (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(bool)
         else:
             resized_mask = mask
 
-        # Apply mask to the background for each color channel
-        for c in range(3):  # Iterate over color channels
-            # Use np.where to safely broadcast mask application to all channels
-            background[:, :, c] = np.where(resized_mask, 255, background[:, :, c])
+        # Iterate over each color channel
+        for c in range(3):
+            # Apply the mask to the channel
+            background[..., c][resized_mask] = 255
 
     return background
+
 
 
 
