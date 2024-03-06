@@ -240,17 +240,22 @@ def yolov8_segment(model, image, label_name, threshold):
     ]
 
     # Overlay each mask onto the green background
-    for i, result in enumerate(results):
-        # Assuming masks are provided as a tensor of shape [N, H, W]
-        # where N is the number of detections
-        for j, mask in enumerate(result.masks):
-            # Ensure the mask is a boolean numpy array
-            mask_bool = mask.cpu().numpy() > 0.5
-            color = colors[j % len(colors)]
-            
-            # Apply color to mask
-            for k in range(3):  # RGB channels
-                green_background[:, :, k] = np.where(mask_bool, color[k], green_background[:, :, k])
+    for result in results:
+        if hasattr(result, 'masks') and result.masks is not None:
+            # Let's assume result.masks.data is the correct tensor. Adjust based on your model's structure.
+            masks_tensor = result.masks.data  # This should be a tensor
+
+            # Convert the tensor to a numpy array for processing
+            masks_np = masks_tensor.cpu().numpy()
+
+            # Assuming masks_np is now a numpy array of shape [N, H, W] where N is the number of masks
+            for mask_np in masks_np:
+                mask_bool = mask_np > 0.5  # Convert to boolean mask based on threshold
+                color = colors[j % len(colors)]
+                
+                # Apply color to mask
+                for k in range(3):  # RGB channels
+                    green_background[:, :, k] = np.where(mask_bool, color[k], green_background[:, :, k])
 
     # Convert the background with overlays back to a tensor
     image_tensor_out = torch.tensor(green_background.transpose(2, 0, 1), dtype=torch.float32) / 255.0
