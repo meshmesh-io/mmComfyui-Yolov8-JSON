@@ -310,10 +310,14 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
         else:
             resized_mask = mask
 
-        # Apply the resized mask to the background. No need to index the color channel here as broadcasting will take care of it
-        background[resized_mask] = [255, 255, 255]  # Set masked areas to white
+        # Convert the 2D mask to a 3D mask by repeating it across the color channels
+        resized_mask_3d = np.repeat(resized_mask[:, :, np.newaxis], 3, axis=2)
+
+        # Apply the 3D mask to the background
+        background[resized_mask_3d] = [255, 255, 255]  # Set masked areas to white
 
     return background
+
 
 
 
