@@ -247,7 +247,7 @@ def yolov8_segment(model, image, label_name, threshold):
     im_colored = Image.fromarray(green_background)
     image_tensor_out = torch.tensor(np.array(im_colored).astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
 
-    return (image_tensor_out, None)
+    return (image_tensor_out, [])
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
