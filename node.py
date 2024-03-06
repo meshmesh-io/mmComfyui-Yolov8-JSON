@@ -261,6 +261,7 @@ def yolov8_segment(model, image, label_name, threshold):
     for result in results:
         print('processing result', idx)
         if hasattr(result, 'masks') and result.masks is not None:
+            
             # Let's assume result.masks.data is the correct tensor. Adjust based on your model's structure.
             masks_tensor = result.masks.data  # This should be a tensor
 
@@ -269,6 +270,7 @@ def yolov8_segment(model, image, label_name, threshold):
 
             # Assuming masks_np is now a numpy array of shape [N, H, W] where N is the number of masks
             for mask_np in masks_np:
+                print('processing mask', idx)
                 mask_bool = mask_np > threshold  # Convert to boolean mask based on threshold
                 
                 # Resize mask_bool if it doesn't match the image dimensions
