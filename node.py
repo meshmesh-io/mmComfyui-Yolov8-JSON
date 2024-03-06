@@ -243,30 +243,23 @@ def yolov8_segment(model, image, label_name, threshold):
     # Overlay each mask onto the green background
     for result in results:
         if hasattr(result, 'masks') and result.masks is not None:
-            # Let's assume result.masks.data is the correct tensor. Adjust based on your model's structure.
-            masks_tensor = result.masks.data  # This should be a tensor
-
-            # Convert the tensor to a numpy array for processing
-            masks_np = masks_tensor.cpu().numpy()
-
-            # Assuming masks_np is now a numpy array of shape [N, H, W] where N is the number of masks
-            for mask_np in masks_np:
-                mask_bool = mask_np > 0.5  # Convert to boolean mask based on threshold
-                
-                 # Resize mask_bool if it doesn't match the green_background dimensions
-                if mask_bool.shape != green_background.shape[:2]:
-                    mask_bool_resized = cv2.resize(mask_bool.astype(np.float32), (W, H))
-                    mask_bool_resized = mask_bool_resized > 0.5  # Re-threshold after resizing
-                else:
-                    mask_bool_resized = mask_bool
-                
+            masks_tensor = result.masks
+            for mask_tensor in masks_tensor:
+                # Convert mask tensor to numpy array
+                mask_np = mask_tensor.cpu().numpy() > threshold  # Apply threshold
                 color = colors[idx % len(colors)]
                 idx += 1
-                # Apply color to mask
-                for k in range(3):  # RGB channels
-                    green_background[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
 
-    # Convert the background with overlays back to a tensor
+                # Resize mask if necessary
+                if mask_np.shape[:2] != (H, W):
+                    mask_np = cv2.resize(mask_np.astype(np.float32), (W, H))
+                    mask_np = mask_np > 0.5  # Reapply threshold after resizing
+
+                # Colorize and apply each mask
+                for c in range(3):  # Iterate over color channels
+                    green_background[:, :, c] = np.where(mask_np, color[c], green_background[:, :, c])
+
+    # Convert the modified background back to a tensor
     image_tensor_out = torch.tensor(green_background.transpose(2, 0, 1), dtype=torch.float32) / 255.0
     image_tensor_out = image_tensor_out.unsqueeze(0)  # Add batch dimension
 
