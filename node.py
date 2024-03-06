@@ -234,17 +234,14 @@ def yolov8_segment(model, image, label_name, threshold):
     # Process results
     print('segment_results', results.xyxy[0])  # Log detections
 
-    # Assuming results.xyxy[0][:, -1] provides access to masks, but this needs adjustment
-    masks = results.xyxy[0][:, -1]  # This might need adjustment based on actual structure
-    print('masks', masks)
-
     # Overlay masks on green background
-    for i, mask in enumerate(masks):
-        binary_mask = mask.cpu().numpy() > threshold  # Apply threshold
+    for result in results:
+        for i, mask in enumerate(result.masks):
+            binary_mask = mask.cpu().numpy() > threshold  # Apply threshold
 
-        # For each channel, apply the original image where mask is true, otherwise green background
-        for c in range(3):
-            green_background[:, :, c] = np.where(binary_mask, original_image[:, :, c], green_background[:, :, c])
+            # For each channel, apply the original image where mask is true, otherwise green background
+            for c in range(3):
+                green_background[:, :, c] = np.where(binary_mask, original_image[:, :, c], green_background[:, :, c])
 
     # Convert back to tensor for output
     im_colored = Image.fromarray(green_background)
