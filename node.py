@@ -298,24 +298,22 @@ def yolov8_segment(model, image, label_name, threshold):
 def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0]):
     # Initialize the background
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
-
+    
     for mask in valid_masks:
-        # Ensure mask is boolean
         if mask.dtype != bool:
             mask = mask.astype(bool)
-
+        
         # Resize mask if necessary
         if mask.shape[:2] != (image_size[1], image_size[0]):
-            resized_mask = cv2.resize(mask.astype(np.uint8), (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(bool)
+            resized_mask = cv2.resize(mask, (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(bool)
         else:
             resized_mask = mask
-
-        # Apply the mask to each color channel
-        for c in range(3):  # There are 3 color channels: R, G, B
-            # For each channel, set the masked pixels to 255
-            background[..., c][resized_mask] = 255
-
+        
+        # Apply mask
+        background[resized_mask] = [255, 255, 255]
+    
     return background
+
 
 
 
