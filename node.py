@@ -260,12 +260,11 @@ def yolov8_segment(model, image, label_name, threshold):
                 else:
                     mask_bool_resized = mask_bool
                 
-                if int(result.cls) in classes:
-                    color = colors[idx % len(colors)]
-                    idx += 1
-                    # Apply color to mask
-                    for k in range(3):  # RGB channels
-                        green_background[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
+                color = colors[idx % len(colors)]
+                idx += 1
+                # Apply color to mask
+                for k in range(3):  # RGB channels
+                    green_background[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
 
     # Convert the background with overlays back to a tensor
     image_tensor_out = torch.tensor(green_background.transpose(2, 0, 1), dtype=torch.float32) / 255.0
