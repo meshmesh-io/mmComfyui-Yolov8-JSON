@@ -468,13 +468,17 @@ class ApplyYolov8ModelSeg:
 
     def main(self, yolov8_model, image, detect, label_name, label_list, threshold):
         res_images = []
+        idx = 0
         for item in image:
+            print('processing image', idx)
+            print('item', item)
             if len(item.shape) == 3:
                 item = item.unsqueeze(0)  # Add a batch dimension if missing
             
             label = label_list if detect == "choose" else label_name
             image_out = yolov8_segment(yolov8_model, item, label, threshold)
             res_images.append(image_out)
+            idx += 1
 
         # Concatenate all images along the batch dimension
         return torch.cat(res_images, dim=0)
