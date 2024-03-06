@@ -463,6 +463,9 @@ class ApplyYolov8ModelSeg:
             image_out,  masks = yolov8_segment(yolov8_model, item, label, threshold)
             res_images.append(image_out)
 
+            print("Mask shape before change_mask_color:", masks[0].shape)
+            print("Mask values before change_mask_color:", masks[0])
+
             for mask in masks:
                 # Change color of the mask here, assuming it's a binary mask
                 colored_mask = change_mask_color(mask)
