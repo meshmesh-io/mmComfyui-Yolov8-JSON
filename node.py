@@ -576,16 +576,5 @@ class ApplyYolov8ModelSeg:
     RETURN_TYPES = ("IMAGE",)  # Updated to only return image
 
     def main(self, yolov8_model, image, detect, label_name, label_list, threshold):
-        # Extract dimensions from the input image tensor
-        if image.dim() == 4:  # Check if image has a batch dimension
-            batch_size, C, H, W = image.shape
-        else:  # If no batch dimension, add one
-            C, H, W = image.shape
-            image = image.unsqueeze(0)  # Add a batch dimension
-            batch_size = 1
-        
-        # Create a green image of the same size as the input image
-        green_image = torch.zeros((batch_size, C, H, W))  # Initialize with zeros
-        green_image[:, 1, :, :] = 1  # Set the green channel to maximum
-        
+       
         return image  # Return the green image tensor
