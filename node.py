@@ -300,6 +300,7 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
 
     for mask in valid_masks:
+        # Ensure mask is boolean
         if mask.dtype != bool:
             mask = mask.astype(bool)
 
@@ -309,10 +310,11 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
         else:
             resized_mask = mask
 
-        # Apply the mask to each channel using numpy's advanced indexing
-        background[resized_mask, :] = [255, 255, 255]  # Set masked areas to white
+        # Apply the resized mask to the background. No need to index the color channel here as broadcasting will take care of it
+        background[resized_mask] = [255, 255, 255]  # Set masked areas to white
 
     return background
+
 
 
 
