@@ -513,7 +513,7 @@ class ApplyYolov8ModelSeg:
                 print("Sum of values in mask:", np.sum(mask))
                 mask_tensor = torch.tensor(mask, dtype=torch.float32) / 255.0
                 mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
-                res_images.append(mask_tensor)
+                res_images.append(mask_tensor.unsqueeze(0))
 
         # final_images = []
         # for tensor in res_images:
