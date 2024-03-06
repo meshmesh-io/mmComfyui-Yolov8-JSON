@@ -576,22 +576,16 @@ class ApplyYolov8ModelSeg:
     RETURN_TYPES = ("IMAGE",)  # Updated to only return image
 
     def main(self, yolov8_model, image, detect, label_name, label_list, threshold):
-        # Ensure image is a 4D tensor [B, C, H, W]
-        if image.dim() == 3:
-            image = image.unsqueeze(0)  # Convert to (1, C, H, W) for batch dimension
+        # Extract dimensions from the input image tensor
+        if image.dim() == 4:  # Check if image has a batch dimension
+            batch_size, C, H, W = image.shape
+        else:  # If no batch dimension, add one
+            C, H, W = image.shape
+            image = image.unsqueeze(0)  # Add a batch dimension
+            batch_size = 1
         
-        # Convert the PyTorch tensor to a PIL Image or NumPy array as needed
-        image_np = image.squeeze(0).permute(1, 2, 0).cpu().numpy()
-        image_np = (image_np * 255).astype(np.uint8)
-
-        # Select label based on detection choice
-        label = label_list if detect == "choose" else label_name
-
-        # Perform segmentation and overlay using the updated yolov8_segment function
-        composite_image_np = yolov8_segment(yolov8_model, image_np, label, threshold)
-
-        # Convert the resulting NumPy array back to a PyTorch tensor
-        composite_image_tensor = torch.from_numpy(composite_image_np).permute(2, 0, 1).float() / 255.0
-        composite_image_tensor = composite_image_tensor.unsqueeze(0)  # Add batch dimension
+        # Create a green image of the same size as the input image
+        green_image = torch.zeros_like(image)  # Initialize with zeros
+        green_image[:, 1, :, :] = 1  # Set the green channel to maximum
         
-        return composite_image_tensor
+        return green_image  # Return the green image tensor
