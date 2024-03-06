@@ -309,7 +309,7 @@ def apply_mask_on_background(background, mask, color=(255, 255, 255)):
         background[:,:,c] = np.where(mask, color[c], background[:,:,c])
     return background
 
-def overlay_masks_on_background(image_size, masks, background_color=(0, 255, 0)):
+def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 255, 0], mask_color=[255, 255, 255]):
     """
     Overlay multiple masks onto a solid background.
 
@@ -541,7 +541,7 @@ class ApplyYolov8ModelSeg:
         H, W = image.shape[2], image.shape[3]
         
         # Overlay masks on a green background
-        composite_image_np = overlay_masks_on_background(valid_masks, image_size=(W, H))
+        composite_image_np = overlay_masks_on_background(valid_masks, image_size=(W, H), background_color=[0, 255, 0], mask_color=[255, 255, 255])
 
         # Convert to tensor, normalize, add batch dimension, and permute to (1, C, H, W)
         composite_image_tensor = torch.tensor(composite_image_np).float() / 255.0
