@@ -304,14 +304,21 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
         if mask.dtype != np.bool_:
             mask = mask.astype(np.bool_)
 
+        # Convert boolean mask to an integer type before resizing
+        mask_int = mask.astype(np.uint8)  # Convert boolean mask to integer (False->0, True->1)
+
         # Resize mask if necessary
         if mask.shape[:2] != (image_size[1], image_size[0]):
-            mask = cv2.resize(mask, (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(np.bool_)
+            resized_mask_int = cv2.resize(mask_int, (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST)
+            resized_mask = resized_mask_int.astype(np.bool_)  # Convert resized integer mask back to boolean
+        else:
+            resized_mask = mask
 
-        # Apply mask to the background
-        background[mask] = [255, 255, 255]  # Assuming you want to set masked areas to white
+        # Apply mask to the background by setting masked areas to white
+        background[resized_mask] = [255, 255, 255]
 
     return background
+
 
 
 
