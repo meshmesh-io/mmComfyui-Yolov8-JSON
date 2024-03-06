@@ -240,6 +240,7 @@ def yolov8_segment(model, image, label_name, threshold):
 
     for result in results:
         masks = result.masks.data
+        print('masks', masks)
         res_mask.append(torch.sum(masks, dim=0))
     return (image_tensor_out, res_mask)
 
