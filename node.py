@@ -278,6 +278,10 @@ def yolov8_segment(model, image, label_name, threshold):
                 else:
                     mask_bool_resized = mask_bool
                 
+                color = colors[idx % len(colors)]
+                idx += 1
+                for k in range(3):  # RGB channels
+                    mask_bool_resized[:, :, k] = np.where(mask_bool_resized, color[k], green_background[:, :, k])
                 valid_masks.append(mask_bool_resized.astype(np.uint8))
                     
     return valid_masks
