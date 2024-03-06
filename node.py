@@ -235,7 +235,10 @@ def yolov8_segment(model, image, label_name, threshold):
     print('segment_results', results.xyxy[0])  # Log detections
 
     # Overlay masks on green background
+    res_mask=[]
     for result in results:
+        masks = result.masks.data
+        res_mask.append(torch.sum(masks, dim=0))
         for i, mask in enumerate(result.masks):
             binary_mask = mask.cpu().numpy() > threshold  # Apply threshold
 
