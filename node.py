@@ -505,5 +505,11 @@ class ApplyYolov8ModelSeg:
                 mask_tensor = mask_tensor.permute(2, 0, 1)  # Move the channel to the first dimension
                 res_images.append(mask_tensor.unsqueeze(0))
 
+        final_images = []
+        for tensor in res_images:
+            image_np = tensor.squeeze(0).permute(1, 2, 0).numpy()  # Remove batch dim and permute
+            image_np = (image_np * 255).astype(np.uint8)  # Scale to [0, 255] and convert to uint8
+            img = Image.fromarray(image_np)  # Convert to PIL Image
+            final_images.append(img)
         # Return the list of tensors
-        return res_images
+        return final_images
