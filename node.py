@@ -214,43 +214,39 @@ def calculate_file_hash(filename: str, hash_every_n: int = 1):
     return h.hexdigest()
 
 def yolov8_segment(model, image, label_name, threshold):
-    # Conversion to PIL Image and setup
     image_tensor = image
-    image_np = image_tensor.cpu().numpy()  # Assume image_tensor is 1xCxHxW and on CUDA
+    image_np = image_tensor.cpu().numpy()
     image_pil = Image.fromarray((image_np.squeeze(0) * 255).astype(np.uint8))
-    original_image = np.array(image_pil).copy()  # For extracting object regions
+    original_image = np.array(image_pil).copy()
 
-    # Create a solid green background of the same dimensions as the original image
     green_background = np.zeros_like(original_image)
-    green_background[:] = [0, 255, 0]  # Solid green
+    green_background[:] = [0, 255, 0]  # Solid green background
 
-    # Model inference
     if label_name is not None:
         classes = get_classes(label_name)
     else:
         classes = []
     results = model(image_pil, classes=classes, conf=threshold)
 
-    # Process results
-    #print('segment_results', results)  # Log detections
+    res_masks = []
+    if hasattr(results, 'xyxy') and len(results.xyxy) > 0:
+        for result in results:
+            # Assuming results.masks is a list of mask tensors
+            for mask in result.masks:
+                mask_data = mask.cpu().numpy()  # Ensure we have the mask data as a numpy array
+                for c in range(3):  # Assuming mask_data is correctly shaped; might need adjustment
+                    # Apply threshold to convert mask to binary format, then overlay on green background
+                    binary_mask = (mask_data > threshold).astype(np.uint8)
+                    green_background[:, :, c] = np.where(binary_mask, original_image[:, :, c], green_background[:, :, c])
 
-    # Overlay masks on green background
-    res_mask=[]
-    for result in results:
-        masks = result.masks.data
-        res_mask.append(torch.sum(masks, dim=0))
-        for i, mask in enumerate(result.masks):
-            binary_mask = mask.cpu().numpy() > threshold  # Apply threshold
+                # Summing up all masks into one, assuming binary_mask is 2D
+                res_masks.append(np.sum(binary_mask, axis=0))
 
-            # For each channel, apply the original image where mask is true, otherwise green background
-            for c in range(3):
-                green_background[:, :, c] = np.where(binary_mask, original_image[:, :, c], green_background[:, :, c])
-
-    # Convert back to tensor for output
+    # Convert modified image back to PIL Image and then to tensor
     im_colored = Image.fromarray(green_background)
     image_tensor_out = torch.tensor(np.array(im_colored).astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
 
-    return (image_tensor_out, [])
+    return (image_tensor_out, res_masks)
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
