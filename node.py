@@ -301,24 +301,25 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
     background = np.full((image_size[1], image_size[0], 3), background_color, dtype=np.uint8)
 
     for mask in valid_masks:
-        # Ensure the mask is a boolean array for logical operations
+        # Ensure the mask is a boolean array
         if mask.dtype != bool:
             mask = mask.astype(bool)
-        
-        # Resize the mask if necessary
+
+        # Resize the mask to match the image size, if necessary
         if mask.shape[:2] != (image_size[1], image_size[0]):
-            resized_mask = cv2.resize(mask.astype(np.uint8), (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST)
-            resized_mask = resized_mask.astype(bool)
+            resized_mask = cv2.resize(mask.astype(np.uint8), (image_size[0], image_size[1]), interpolation=cv2.INTER_NEAREST).astype(bool)
         else:
             resized_mask = mask
-        
-        # Convert the 2D mask to a 3D mask by repeating it across the color channels
-        resized_mask_3d = np.repeat(resized_mask[:, :, np.newaxis], 3, axis=2)
-        
-        # Apply the 3D mask to the background
-        background[resized_mask_3d] = [255, 255, 255]
+
+        # Convert the boolean mask to a 3D mask to match the image shape
+        mask_3d = np.repeat(resized_mask[:, :, np.newaxis], 3, axis=2)
+
+        # Apply the mask: set the color of the masked area to white (or any color you prefer)
+        background[mask_3d] = [255, 255, 255]  # White
 
     return background
+
+
 
 
 
