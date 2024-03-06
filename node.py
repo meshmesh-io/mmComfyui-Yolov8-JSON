@@ -298,15 +298,22 @@ def yolov8_segment(model, image, label_name, threshold):
 
 def apply_color_mask(background, mask, color=(255, 255, 255)):
     """
-    Apply a colored mask over a background image.
+    Apply a colored mask over a background image, resizing the mask if necessary.
 
     :param background: 3D numpy array of shape (H, W, 3), the background image.
     :param mask: 2D numpy array, the mask to be applied.
     :param color: Tuple of length 3, representing the RGB color to apply where mask is true.
     :return: 3D numpy array, the result image with the mask applied.
     """
-    # Ensure the mask is a boolean array
-    mask_bool = mask.astype(bool)
+    # Get the dimensions of the background
+    bg_height, bg_width = background.shape[:2]
+    
+    # Resize mask to match the background's dimensions if they differ
+    if mask.shape[0] != bg_height or mask.shape[1] != bg_width:
+        mask_resized = cv2.resize(mask.astype(np.uint8), (bg_width, bg_height), interpolation=cv2.INTER_NEAREST)
+        mask_bool = mask_resized.astype(bool)
+    else:
+        mask_bool = mask.astype(bool)
     
     # Create a color mask with the same dimensions as the background
     color_mask = np.zeros_like(background, dtype=np.uint8)
@@ -319,6 +326,7 @@ def apply_color_mask(background, mask, color=(255, 255, 255)):
     combined_image = np.where(mask_bool[:,:,None], color_mask, background)
 
     return combined_image
+
 
 def overlay_masks_on_background(valid_masks, image_size, background_color=(0, 255, 0), mask_color=(255, 255, 255)):
     """
