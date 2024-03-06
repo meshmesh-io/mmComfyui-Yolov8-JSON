@@ -315,9 +315,11 @@ def overlay_masks_on_background(valid_masks, image_size, background_color=[0, 25
             resized_mask = mask
 
         # Apply mask to the background by setting masked areas to white
-        background[resized_mask] = [255, 255, 255]
+        # Update to properly broadcast the mask across the color channels
+        background[resized_mask] = np.array([255, 255, 255], dtype=np.uint8)
 
     return background
+
 
 
 
