@@ -214,39 +214,45 @@ def calculate_file_hash(filename: str, hash_every_n: int = 1):
     return h.hexdigest()
 
 def yolov8_segment(model, image, label_name, threshold):
-    image_tensor = image
-    image_np = image_tensor.cpu().numpy()
-    image_pil = Image.fromarray((image_np.squeeze(0) * 255).astype(np.uint8))
+    # Setup
+    image_tensor = image.cpu().numpy()
+    image_pil = Image.fromarray((image_tensor.squeeze(0) * 255).astype(np.uint8))
     original_image = np.array(image_pil).copy()
+    H, W = original_image.shape[:2]
 
-    green_background = np.zeros_like(original_image)
-    green_background[:] = [0, 255, 0]  # Solid green background
+    # Create a solid green background
+    green_background = np.full((H, W, 3), [0, 255, 0], dtype=np.uint8)
 
     if label_name is not None:
         classes = get_classes(label_name)
     else:
         classes = []
+
     results = model(image_pil, classes=classes, conf=threshold)
+    
+    if results.xyxy[0].numel() == 0:  # Check if there are no detections
+        return torch.tensor(np.array(green_background).astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
 
-    #res_masks = []
-    if hasattr(results, 'xyxy') and len(results.xyxy) > 0:
-        for result in results:
-            # Assuming results.masks is a list of mask tensors
-            for mask in result.masks:
-                mask_data = mask.cpu().numpy()  # Ensure we have the mask data as a numpy array
-                for c in range(3):  # Assuming mask_data is correctly shaped; might need adjustment
-                    # Apply threshold to convert mask to binary format, then overlay on green background
-                    binary_mask = (mask_data > threshold).astype(np.uint8)
-                    green_background[:, :, c] = np.where(binary_mask, original_image[:, :, c], green_background[:, :, c])
+    # Define colors for each mask
+    colors = [
+        [255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0],
+        [0, 255, 255], [255, 0, 255], [192, 192, 192], [128, 128, 128],
+        [128, 0, 0], [128, 128, 0]
+    ]
+    
+    # Iterate through detections and apply each mask
+    for i, det in enumerate(results.xyxy[0]):
+        if len(det) == 0:  # Skip if no detection
+            continue
+        color = colors[i % len(colors)]
+        mask = results.masks[i]  # Assuming masks correspond to detections
+        for j in range(3):  # Apply mask color to green background
+            green_background[:, :, j] = np.where(mask.cpu().numpy(), color[j], green_background[:, :, j])
 
-                # Summing up all masks into one, assuming binary_mask is 2D
-                #res_masks.append(np.sum(binary_mask, axis=0))
+    # Convert back to tensor
+    image_tensor_out = torch.tensor(np.array(green_background).astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
 
-    # Convert modified image back to PIL Image and then to tensor
-    im_colored = Image.fromarray(green_background)
-    image_tensor_out = torch.tensor(np.array(im_colored).astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
-
-    return (image_tensor_out)
+    return image_tensor_out
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
@@ -440,25 +446,17 @@ class ApplyYolov8ModelSeg:
 
     CATEGORY = "Comfyui-Yolov8-JSON"
     FUNCTION = "main"
-    RETURN_TYPES = ("IMAGE")
+    RETURN_TYPES = ("IMAGE",)  # Updated to only return image
 
-    def main(
-        self, yolov8_model, image, detect, label_name, label_list, threshold
-    ):
+    def main(self, yolov8_model, image, detect, label_name, label_list, threshold):
         res_images = []
-        res_masks = []
         for item in image:
-            # Check and adjust image dimensions if needed
             if len(item.shape) == 3:
                 item = item.unsqueeze(0)  # Add a batch dimension if missing
-
-            label = None
-            if detect == "choose":
-                label = label_list
-            else:
-                label = label_name
-
+            
+            label = label_list if detect == "choose" else label_name
             image_out = yolov8_segment(yolov8_model, item, label, threshold)
             res_images.append(image_out)
-            
-        return (torch.cat(res_images, dim=0))
+
+        # Concatenate all images along the batch dimension
+        return torch.cat(res_images, dim=0)
