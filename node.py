@@ -245,20 +245,22 @@ def yolov8_segment(model, image, label_name, threshold, class_colors):
     for result in results:
         masks = result.masks.data
         for idx, mask in enumerate(masks):
+            print('mask', idx)
             # Retrieve the class index for the current mask
-            class_id = result.masks.indices[idx]  # Assuming this gives you the class ID of each mask
-            color = (0, 255, 0)  # Get the unique color for this class, default to white if not found
+            #class_id = result.masks.indices[idx]  # Assuming this gives you the class ID of each mask
+            color = (0, 0, 255)  # Get the unique color for this class, default to white if not found
             
             # Convert single-channel mask to a 3-channel color mask
             colored_mask = change_mask_color(mask, color).cpu().numpy().transpose((1, 2, 0)).astype(np.uint8)
             
+            print('colored_mask', colored_mask)
             # Apply colored mask onto the original image
             mask_area = mask.cpu().numpy().astype(bool)
             original_image[mask_area] = original_image[mask_area] * (1 - 0.5) + colored_mask[mask_area] * 0.5
 
     # Convert the numpy image with colored masks back to a tensor
     image_tensor_out = torch.from_numpy(original_image.astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
-
+    print('image_tensor_out', 'sending')
     return image_tensor_out
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
