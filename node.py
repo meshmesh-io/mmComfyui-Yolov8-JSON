@@ -446,6 +446,7 @@ class ApplyYolov8ModelSeg:
     def main(
         self, yolov8_model, image, detect, label_name, label_list, threshold
     ):
+        print('custom yolo8 segmentation function')
         res_images = []
         res_masks_colored = []
         res_masks = []  # No need to concatenate masks anymore
@@ -469,4 +470,4 @@ class ApplyYolov8ModelSeg:
                 res_masks_colored.append(colored_mask)
                 res_masks.append(mask)  # Append the original mask too
 
-        return (torch.cat(res_images, dim=0), torch.cat(res_images, dim=0))
+        return (torch.cat(res_images, dim=0), torch.cat(res_masks_colored, dim=0))
