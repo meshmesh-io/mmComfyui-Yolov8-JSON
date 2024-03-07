@@ -469,4 +469,4 @@ class ApplyYolov8ModelSeg:
                 res_masks_colored.append(colored_mask)
                 res_masks.append(mask)  # Append the original mask too
 
-        return (torch.cat(res_images, dim=0), res_masks_colored, res_masks)
+        return (torch.cat(res_images, dim=0), res_masks_colored)
