@@ -220,8 +220,11 @@ def change_mask_color(mask):
     print("Mask values before change_mask_color:")
     print(mask)
 
+    thresholded_mask = torch.where(mask > 0.5, torch.tensor(1.0, device=mask.device), torch.tensor(0.0, device=mask.device))
+    
+    # Multiply by 255 to set the blue channel where mask is present
     colored_mask = torch.zeros((3, mask.shape[0], mask.shape[1]), device=mask.device)  # Initialize with zeros
-    colored_mask[2, :, :] = mask * 255  # Set blue channel to maximum where mask is present
+    colored_mask[2, :, :] = thresholded_mask * 255 
     
     # Debugging prints
     print("Colored mask before return:")
