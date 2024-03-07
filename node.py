@@ -216,6 +216,10 @@ def calculate_file_hash(filename: str, hash_every_n: int = 1):
 def change_mask_color(mask):
     # Assuming mask is a binary mask with values 0 and 1
     # Change color logic goes here
+
+    print("Mask values before change_mask_color:")
+    print(mask)
+
     colored_mask = torch.zeros((3, mask.shape[0], mask.shape[1]), device=mask.device)  # Initialize with zeros
     colored_mask[2, :, :] = mask * 255  # Set blue channel to maximum where mask is present
     
