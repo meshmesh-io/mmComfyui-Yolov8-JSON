@@ -441,7 +441,7 @@ class ApplyYolov8ModelSeg:
 
     CATEGORY = "Comfyui-Yolov8-JSON"
     FUNCTION = "main"
-    RETURN_TYPES = ("IMAGE", "MASK")
+    RETURN_TYPES = ("IMAGE", "MASK", "MASKS")
 
     def main(
         self, yolov8_model, image, detect, label_name, label_list, threshold
@@ -469,4 +469,4 @@ class ApplyYolov8ModelSeg:
                 res_masks_colored.append(colored_mask)
                 res_masks.append(mask)  # Append the original mask too
 
-        return (torch.cat(res_images, dim=0), res_masks_colored)
+        return (torch.cat(res_images, dim=0), torch.cat(res_masks, dim=0), res_masks_colored)
