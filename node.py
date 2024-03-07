@@ -441,7 +441,7 @@ class ApplyYolov8ModelSeg:
 
     CATEGORY = "Comfyui-Yolov8-JSON"
     FUNCTION = "main"
-    RETURN_TYPES = ("IMAGE", "MASK", "MASKS")
+    RETURN_TYPES = ("IMAGE", "MASK", "MASK")
 
     def main(
         self, yolov8_model, image, detect, label_name, label_list, threshold
