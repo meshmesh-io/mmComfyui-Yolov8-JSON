@@ -245,7 +245,7 @@ def yolov8_segment(model, image, label_name, threshold):
     else:
         classes = []
     results = model(image, classes=classes, conf=threshold)
-
+    print('results:', results)
     im_array = results[0].plot()  # plot a BGR numpy array of predictions
     im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
 
