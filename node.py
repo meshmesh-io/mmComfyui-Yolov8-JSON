@@ -213,53 +213,53 @@ def calculate_file_hash(filename: str, hash_every_n: int = 1):
     h.update(str(os.path.getmtime(filename)).encode())
     return h.hexdigest()
 
-def change_mask_color(mask):
-    # Assuming mask is a binary mask with values 0 and 1
-    # Change color logic goes here
-
-    print("Mask values before change_mask_color:")
-    print(mask)
-
+def change_mask_color(mask, color):
+    # Assume mask is a binary mask with values 0 and 1
     thresholded_mask = torch.where(mask > 0.5, torch.tensor(1.0, device=mask.device), torch.tensor(0.0, device=mask.device))
-    
-    # Multiply by 255 to set the blue channel where mask is present
-    colored_mask = torch.zeros((3, mask.shape[0], mask.shape[1]), device=mask.device)  # Initialize with zeros
-    colored_mask[2, :, :] = thresholded_mask * 255 
-    
-    # Debugging prints
-    print("Colored mask before return:")
-    print(colored_mask)
-    
+
+    # Create a colored mask
+    colored_mask = torch.zeros((3, mask.shape[1], mask.shape[2]), device=mask.device)  # Initialize with zeros
+    for i in range(3):  # Apply color to the mask
+        colored_mask[i, :, :] = thresholded_mask * color[i]
+
     return colored_mask
 
 
-def yolov8_segment(model, image, label_name, threshold):
+def yolov8_segment(model, image, label_name, threshold, class_colors):
     image_tensor = image
-    image_np = image_tensor.cpu().numpy()  # Change from CxHxW to HxWxC for Pillow
-    image = Image.fromarray(
-        (image_np.squeeze(0) * 255).astype(np.uint8)
-    )  # Convert float [0,1] tensor to uint8 image
+    image_np = image_tensor.cpu().numpy().squeeze(0).transpose((1, 2, 0))  # Change from CxHxW to HxWxC for numpy
+
+    # Convert to uint8 and keep a copy of the original image
+    original_image = (image_np * 255).astype(np.uint8).copy()
+    original_image_pil = Image.fromarray(original_image)
 
     if label_name is not None:
         classes = get_classes(label_name)
     else:
         classes = []
-    results = model(image, classes=classes, conf=threshold)
-    print('results:', results)
-    im_array = results[0].plot()  # plot a BGR numpy array of predictions
-    im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
+    
+    # Run detection model
+    results = model(original_image_pil, classes=classes, conf=threshold)
 
-    image_tensor_out = torch.tensor(
-        np.array(im).astype(np.float32) / 255.0
-    )  # Convert back to CxHxW
-    image_tensor_out = torch.unsqueeze(image_tensor_out, 0)
-
-    res_mask=[]
-
+    # Iterate through each detection and apply unique color masks
     for result in results:
         masks = result.masks.data
-        res_mask.append(torch.sum(masks, dim=0))
-    return (image_tensor_out, res_mask)
+        for idx, mask in enumerate(masks):
+            # Retrieve the class index for the current mask
+            class_id = result.masks.indices[idx]  # Assuming this gives you the class ID of each mask
+            color = (0, 255, 0)  # Get the unique color for this class, default to white if not found
+            
+            # Convert single-channel mask to a 3-channel color mask
+            colored_mask = change_mask_color(mask, color).cpu().numpy().transpose((1, 2, 0)).astype(np.uint8)
+            
+            # Apply colored mask onto the original image
+            mask_area = mask.cpu().numpy().astype(bool)
+            original_image[mask_area] = original_image[mask_area] * (1 - 0.5) + colored_mask[mask_area] * 0.5
+
+    # Convert the numpy image with colored masks back to a tensor
+    image_tensor_out = torch.from_numpy(original_image.astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
+
+    return image_tensor_out
 
 def yolov8_detect(model, image, label_name, json_type, threshold):
     image_tensor = image
