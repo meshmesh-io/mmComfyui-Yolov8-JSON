@@ -218,6 +218,11 @@ def change_mask_color(mask):
     # Change color logic goes here
     colored_mask = torch.zeros((3, mask.shape[0], mask.shape[1]), device=mask.device)  # Initialize with zeros
     colored_mask[2, :, :] = mask * 255  # Set blue channel to maximum where mask is present
+    
+    # Debugging prints
+    print("Colored mask before return:")
+    print(colored_mask)
+    
     return colored_mask
 
 
