@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import logging
 from torch.hub import download_url_to_file
 import cv2
+from torchvision.transforms import functional as F
 
 logger = logging.getLogger("Comfyui-Yolov8-JSON")
 yolov8_model_dir_name = "yolov8"
@@ -226,13 +227,41 @@ def change_mask_color(mask, color):
 
 
 def yolov8_segment(model, image, label_name, threshold):
+    # Assuming image is a PIL Image or a NumPy array that needs to be converted to a tensor
+    if isinstance(image, np.ndarray):
+        # Convert from HWC to CHW format if it's a numpy array
+        image = torch.from_numpy(image.transpose((2, 0, 1)))
+    elif isinstance(image, Image.Image):
+        # Convert from PIL Image to tensor
+        image = F.to_tensor(image)
 
+    # Check if the image tensor is already normalized (values between 0 and 1)
+    if image.max() > 1:
+        image = image.float() / 255.
+
+    # Resize the image to make its dimensions divisible by 32
+    height, width = image.shape[1:3]
+    new_height = ((height // 32) + 1) * 32 if height % 32 else height
+    new_width = ((width // 32) + 1) * 32 if width % 32 else width
+
+    # If the dimensions are not divisible by 32, resize the image
+    if height != new_height or width != new_width:
+        image = F.resize(image, size=(new_height, new_width), interpolation=Image.BILINEAR)
+
+    # Add a batch dimension if it's missing
+    if len(image.shape) == 3:
+        image = image.unsqueeze(0)
+
+    # Convert image to batch, channels, height, width format
+    if image.shape[0] == 3 and len(image.shape) == 4:
+        image = image.permute(0, 3, 1, 2)
+
+    # Now the image is in the correct format for the model
     if label_name is not None:
         classes = get_classes(label_name)
     else:
         classes = []
     
-    # Run detection model
     results = model(image, classes=classes, conf=threshold)
 
     # Iterate through each detection and apply unique color masks
