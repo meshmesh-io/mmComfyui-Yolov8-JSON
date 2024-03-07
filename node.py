@@ -225,7 +225,7 @@ def change_mask_color(mask, color):
     return colored_mask
 
 
-def yolov8_segment(model, image, label_name, threshold, class_colors):
+def yolov8_segment(model, image, label_name, threshold):
     image_tensor = image
     image_np = image_tensor.cpu().numpy().squeeze(0).transpose((1, 2, 0))  # Change from CxHxW to HxWxC for numpy
 
