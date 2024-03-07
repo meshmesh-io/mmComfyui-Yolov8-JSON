@@ -226,12 +226,6 @@ def change_mask_color(mask, color):
 
 
 def yolov8_segment(model, image, label_name, threshold):
-    image_tensor = image
-    image_np = image_tensor.cpu().numpy().squeeze(0).transpose((1, 2, 0))  # Change from CxHxW to HxWxC for numpy
-
-    # Convert to uint8 and keep a copy of the original image
-    original_image = (image_np * 255).astype(np.uint8).copy()
-    original_image_pil = Image.fromarray(original_image)
 
     if label_name is not None:
         classes = get_classes(label_name)
@@ -239,7 +233,7 @@ def yolov8_segment(model, image, label_name, threshold):
         classes = []
     
     # Run detection model
-    results = model(original_image_pil, classes=classes, conf=threshold)
+    results = model(image, classes=classes, conf=threshold)
 
     # Iterate through each detection and apply unique color masks
     for result in results:
@@ -256,10 +250,10 @@ def yolov8_segment(model, image, label_name, threshold):
             print('colored_mask', colored_mask)
             # Apply colored mask onto the original image
             mask_area = mask.cpu().numpy().astype(bool)
-            original_image[mask_area] = original_image[mask_area] * (1 - 0.5) + colored_mask[mask_area] * 0.5
+            image[mask_area] = image[mask_area] * (1 - 0.5) + colored_mask[mask_area] * 0.5
 
     # Convert the numpy image with colored masks back to a tensor
-    image_tensor_out = torch.from_numpy(original_image.astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
+    image_tensor_out = torch.from_numpy(image.astype(np.float32) / 255.0).permute(2, 0, 1).unsqueeze(0)
     print('image_tensor_out', 'sending')
     return image_tensor_out
 
